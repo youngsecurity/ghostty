@@ -235,8 +235,8 @@ pub fn presentLastTarget(self: *Direct3D11) !void {
 /// Returns the options to use when constructing buffers.
 pub inline fn bufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -246,8 +246,8 @@ pub inline fn bufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing instance buffers.
 pub inline fn instanceBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -257,8 +257,8 @@ pub inline fn instanceBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing uniform/constant buffers.
 pub inline fn uniformBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .constant_buffer = true },
@@ -268,8 +268,8 @@ pub inline fn uniformBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing foreground cell buffers.
 pub inline fn fgBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -279,8 +279,8 @@ pub inline fn fgBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing background cell buffers.
 pub inline fn bgBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -290,8 +290,8 @@ pub inline fn bgBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing image buffers.
 pub inline fn imageBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -301,8 +301,8 @@ pub inline fn imageBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing background image buffers.
 pub inline fn bgImageBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -312,8 +312,8 @@ pub inline fn bgImageBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing textures.
 pub inline fn textureOptions(self: Direct3D11) Texture.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .format = DXGI_FORMAT_R8G8B8A8_UNORM,
         .usage = .default,
         .bind_flags = .{ .shader_resource = true },
@@ -358,8 +358,8 @@ pub inline fn imageTextureOptions(
     srgb: bool,
 ) Texture.Options {
     return .{
-        .device = @ptrCast(self.device),
-        .context = @ptrCast(self.context),
+        .device = @ptrCast(@alignCast(self.device)),
+        .context = @ptrCast(@alignCast(self.context)),
         .format = format.toDXGIFormat(srgb),
         .usage = .default,
         .bind_flags = .{ .shader_resource = true },
