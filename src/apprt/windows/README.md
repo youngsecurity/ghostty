@@ -122,6 +122,39 @@ zig build -Dtarget=x86_64-windows -Dapp-runtime=windows -Drenderer=d3d11 -Doptim
 | PTY | POSIX PTY | POSIX PTY | ConPTY |
 | IPC | D-Bus | XPC | Named Pipes |
 
+## WSL Compatibility
+
+YStty runs as a native Windows application and can interact with WSL (Windows Subsystem for Linux) processes:
+
+### Running WSL Processes
+
+ConPTY supports launching WSL processes just like any other Windows console application:
+
+- **Default shell**: `wsl.exe` or `bash.exe` launches the default WSL distribution
+- **Specific distro**: `wsl -d Ubuntu` launches a specific distribution
+- **WSL commands**: Any WSL command can be run through ConPTY
+
+### Graphics (D3D11 vs WSLg)
+
+**Important**: YStty's D3D11 renderer is completely separate from WSLg:
+
+- **YStty**: Native Windows app using Direct3D 11 directly
+- **WSLg**: Microsoft's solution for running *Linux* GUI apps on Windows
+
+YStty does not run inside WSL or WSLg. The D3D11 renderer:
+- Uses native Windows graphics drivers
+- Works with any GPU that supports D3D11 Feature Level 11.0+
+- Is unaffected by WSLg installation or configuration
+
+### Compatibility Matrix
+
+| Scenario | Support |
+|----------|---------|
+| Run WSL processes in YStty terminal | ✅ Via ConPTY + wsl.exe |
+| YStty rendering via WSLg | N/A (YStty is native Windows) |
+| D3D11 on Windows with WSL2 installed | ✅ No conflicts |
+| D3D11 feature level requirements | 11.0 minimum |
+
 ## Contributing
 
 YStty follows the same code style and architecture as the main Ghostty project.
