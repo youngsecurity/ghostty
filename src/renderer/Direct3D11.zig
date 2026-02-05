@@ -381,8 +381,8 @@ pub fn initAtlasTexture(
 
     return try Texture.init(
         .{
-            .device = self.device,
-            .context = self.context,
+            .device = @ptrCast(@alignCast(self.device)),
+            .context = @ptrCast(@alignCast(self.context)),
             .format = format,
             .usage = .default,
             .bind_flags = .{ .shader_resource = true },

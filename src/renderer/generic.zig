@@ -468,17 +468,17 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                     1,
                     null,
                 );
-                errdefer front_texture.deinit();
+                errdefer @constCast(&front_texture).deinit();
                 const back_texture = try Texture.init(
                     api.textureOptions(),
                     1,
                     1,
                     null,
                 );
-                errdefer back_texture.deinit();
+                errdefer @constCast(&back_texture).deinit();
 
                 const sampler = try Sampler.init(api.samplerOptions());
-                errdefer sampler.deinit();
+                errdefer @constCast(&sampler).deinit();
 
                 return .{
                     .front_texture = front_texture,
