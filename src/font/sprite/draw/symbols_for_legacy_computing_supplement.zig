@@ -113,7 +113,7 @@ pub fn draw1CD00_1CDE5(
             // at the end are keys into our packed struct. Since we're
             // at comptime we can metaprogram it all.
             const idx = std.mem.indexOfScalar(u8, line, '-').?;
-            for (line[idx + 1 ..]) |c| @field(current, &.{c}) = true;
+            for (line[idx + 1 ..]) |c| @field(current.*, &[1:0]u8{c}) = true;
         }
 
         assert(i == octants_len);
