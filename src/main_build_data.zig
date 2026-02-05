@@ -47,5 +47,11 @@ pub fn main() !void {
         .@"vim-compiler" => try writer.writeAll(@import("extra/vim.zig").compiler),
         .terminfo => try @import("terminfo/ghostty.zig").ghostty.encode(writer),
     }
-    try stdout_writer.end();
+
+    // On Windows, stdout is a console handle which doesn't support ftruncate.
+    // The build system captures stdout to a file, so the data is already written.
+    stdout_writer.end() catch |err| switch (err) {
+        error.FileTooBig => {}, // Windows console handle doesn't support truncate
+        else => return err,
+    };
 }
