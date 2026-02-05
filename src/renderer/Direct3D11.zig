@@ -206,7 +206,8 @@ pub fn initTarget(self: *const Direct3D11, width: usize, height: usize) !Target 
 pub fn present(self: *Direct3D11, target: Target) !void {
     const context = self.context orelse return error.NoContext;
     const swap_chain = self.swap_chain orelse return error.NoSwapChain;
-    const back_buffer_rtv = self.back_buffer_rtv orelse return error.NoBackBuffer;
+    // back_buffer_rtv kept for potential future use (clearing, etc.)
+    _ = self.back_buffer_rtv orelse return error.NoBackBuffer;
 
     // Copy the target texture to the back buffer
     // First, we need to get the back buffer texture from the RTV
