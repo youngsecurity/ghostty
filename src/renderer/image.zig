@@ -776,7 +776,7 @@ pub const Image = union(enum) {
 
             .ready,
             .unload_ready,
-            => |t| t.deinit(),
+            => |t| @constCast(&t).deinit(),
         }
     }
 

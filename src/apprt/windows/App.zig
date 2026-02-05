@@ -177,11 +177,11 @@ pub fn performAction(
             };
             return true;
         },
-        .close_surface => {
+        .close_window => {
             _ = value;
             switch (target) {
-                .focused => {
-                    // Close the focused surface
+                .app => {
+                    // Close the focused window
                     if (self.core_app.focusedSurface()) |focused| {
                         focused.close(false);
                     }

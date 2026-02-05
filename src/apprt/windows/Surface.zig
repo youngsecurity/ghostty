@@ -758,16 +758,16 @@ const IID_ID3D11Texture2D = GUID{
 };
 
 const ID3D11DeviceVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11Device, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11Device) callconv(.C) u32,
-    Release: *const fn (*ID3D11Device) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11Device, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11Device) callconv(.c) u32,
+    Release: *const fn (*ID3D11Device) callconv(.c) u32,
     CreateBuffer: *const anyopaque,
     CreateTexture1D: *const anyopaque,
     CreateTexture2D: *const anyopaque,
     CreateTexture3D: *const anyopaque,
     CreateShaderResourceView: *const anyopaque,
     CreateUnorderedAccessView: *const anyopaque,
-    CreateRenderTargetView: *const fn (*ID3D11Device, *anyopaque, ?*anyopaque, *?*ID3D11RenderTargetView) callconv(.C) HRESULT,
+    CreateRenderTargetView: *const fn (*ID3D11Device, *anyopaque, ?*anyopaque, *?*ID3D11RenderTargetView) callconv(.c) HRESULT,
 };
 
 const ID3D11Device = extern struct {
@@ -775,9 +775,9 @@ const ID3D11Device = extern struct {
 };
 
 const ID3D11DeviceContextVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11DeviceContext, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11DeviceContext) callconv(.C) u32,
-    Release: *const fn (*ID3D11DeviceContext) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11DeviceContext, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11DeviceContext) callconv(.c) u32,
+    Release: *const fn (*ID3D11DeviceContext) callconv(.c) u32,
     GetDevice: *const anyopaque,
     GetPrivateData: *const anyopaque,
     SetPrivateData: *const anyopaque,
