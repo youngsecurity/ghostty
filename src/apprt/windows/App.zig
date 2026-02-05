@@ -38,11 +38,14 @@ should_quit: bool,
 /// List of active surfaces
 surfaces: std.ArrayListUnmanaged(*Surface),
 
-/// Configuration
-config: *const configpkg.Config,
-
 /// Initialize the Windows application
-pub fn init(core_app: *CoreApp, config: *const configpkg.Config) !App {
+/// This matches the interface expected by main_ghostty.zig
+pub fn init(
+    self: *App,
+    core_app: *CoreApp,
+    opts: struct {},
+) !void {
+    _ = opts;
     const alloc = core_app.alloc;
 
     log.info("Initializing YStty Windows application", .{});
@@ -53,20 +56,19 @@ pub fn init(core_app: *CoreApp, config: *const configpkg.Config) !App {
     // Register the window class
     const window_class = try registerWindowClass(hinstance);
 
-    return App{
+    self.* = App{
         .core_app = core_app,
         .alloc = alloc,
         .window_class = window_class,
         .hinstance = hinstance,
         .should_quit = false,
         .surfaces = .{},
-        .config = config,
     };
 }
 
-/// Deinitialize the application
-pub fn deinit(self: *App) void {
-    log.info("Deinitializing YStty Windows application", .{});
+/// Terminate the application (matches apprt interface)
+pub fn terminate(self: *App) void {
+    log.info("Terminating YStty Windows application", .{});
 
     // Close all surfaces
     for (self.surfaces.items) |surface| {
