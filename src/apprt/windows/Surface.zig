@@ -376,7 +376,7 @@ pub fn handleTextInput(self: *Surface, text: []const u8) void {
 // Virtual Key Mapping
 // =============================================================================
 
-fn mapVirtualKey(vk: u32, scancode: u32) input.key.Key {
+fn mapVirtualKey(vk: u32, scancode: u32) input.Key {
     _ = scancode;
 
     return switch (vk) {

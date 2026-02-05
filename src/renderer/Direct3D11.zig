@@ -50,10 +50,10 @@ alloc: std.mem.Allocator,
 blending: configpkg.Config.AlphaBlending,
 
 /// D3D11 device
-device: ?*ID3D11Device,
+device: ?*bufferpkg.ID3D11Device,
 
 /// D3D11 immediate context
-context: ?*ID3D11DeviceContext,
+context: ?*bufferpkg.ID3D11DeviceContext,
 
 /// DXGI swap chain for presenting
 swap_chain: ?*IDXGISwapChain,
@@ -72,12 +72,12 @@ pub fn init(alloc: Allocator, opts: rendererpkg.Options) error{D3D11InitFailed}!
 
     // The surface stores D3D11 objects as anyopaque, we just keep them as-is
     // and cast when needed in methods
-    const device: ?*ID3D11Device = if (surface.d3d_device) |d|
+    const device: ?*bufferpkg.ID3D11Device = if (surface.d3d_device) |d|
         @ptrCast(@alignCast(d))
     else
         null;
 
-    const context: ?*ID3D11DeviceContext = if (surface.d3d_context) |c|
+    const context: ?*bufferpkg.ID3D11DeviceContext = if (surface.d3d_context) |c|
         @ptrCast(@alignCast(c))
     else
         null;

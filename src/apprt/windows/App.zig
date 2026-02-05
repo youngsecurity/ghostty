@@ -496,10 +496,14 @@ fn windowProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.c
 fn getModifiers() input.Mods {
     var mods: input.Mods = .{};
 
-    if ((GetKeyState(VK_SHIFT) & 0x8000) != 0) mods.shift = true;
-    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0) mods.ctrl = true;
-    if ((GetKeyState(VK_MENU) & 0x8000) != 0) mods.alt = true;
-    if ((GetKeyState(VK_LWIN) & 0x8000) != 0 or (GetKeyState(VK_RWIN) & 0x8000) != 0) mods.super = true;
+    // GetKeyState returns i16, high bit indicates key is pressed
+    // Use @as(u16, @bitCast(...)) to properly check the high bit
+    const high_bit: u16 = 0x8000;
+    if ((@as(u16, @bitCast(GetKeyState(VK_SHIFT))) & high_bit) != 0) mods.shift = true;
+    if ((@as(u16, @bitCast(GetKeyState(VK_CONTROL))) & high_bit) != 0) mods.ctrl = true;
+    if ((@as(u16, @bitCast(GetKeyState(VK_MENU))) & high_bit) != 0) mods.alt = true;
+    if ((@as(u16, @bitCast(GetKeyState(VK_LWIN))) & high_bit) != 0 or
+        (@as(u16, @bitCast(GetKeyState(VK_RWIN))) & high_bit) != 0) mods.super = true;
 
     return mods;
 }
