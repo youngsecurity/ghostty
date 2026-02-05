@@ -55,17 +55,57 @@ device: ?*ID3D11Device,
 /// D3D11 immediate context
 context: ?*ID3D11DeviceContext,
 
+/// DXGI swap chain for presenting
+swap_chain: ?*IDXGISwapChain,
+
+/// Back buffer render target view
+back_buffer_rtv: ?*ID3D11RenderTargetView,
+
 /// The most recently presented target, in case we need to present it again.
 last_target: ?Target,
 
 pub fn init(alloc: Allocator, opts: rendererpkg.Options) error{D3D11InitFailed}!Direct3D11 {
     log.info("Initializing Direct3D11 renderer", .{});
 
+    // Get D3D11 objects from the surface
+    const surface = opts.rt_surface;
+
+    // The surface stores D3D11 objects as anyopaque, we just keep them as-is
+    // and cast when needed in methods
+    const device: ?*ID3D11Device = if (surface.d3d_device) |d|
+        @ptrCast(@alignCast(d))
+    else
+        null;
+
+    const context: ?*ID3D11DeviceContext = if (surface.d3d_context) |c|
+        @ptrCast(@alignCast(c))
+    else
+        null;
+
+    const swap_chain: ?*IDXGISwapChain = if (surface.swap_chain) |s|
+        @ptrCast(@alignCast(s))
+    else
+        null;
+
+    const back_buffer_rtv: ?*ID3D11RenderTargetView = if (surface.render_target) |r|
+        @ptrCast(@alignCast(r))
+    else
+        null;
+
+    if (device == null or context == null) {
+        log.err("D3D11 device or context not available from surface", .{});
+        return error.D3D11InitFailed;
+    }
+
+    log.info("Got D3D11 objects from surface", .{});
+
     return .{
         .alloc = alloc,
         .blending = opts.config.blending,
-        .device = null,
-        .context = null,
+        .device = device,
+        .context = context,
+        .swap_chain = swap_chain,
+        .back_buffer_rtv = back_buffer_rtv,
         .last_target = null,
     };
 }
@@ -73,15 +113,13 @@ pub fn init(alloc: Allocator, opts: rendererpkg.Options) error{D3D11InitFailed}!
 pub fn deinit(self: *Direct3D11) void {
     log.info("Deinitializing Direct3D11 renderer", .{});
 
-    if (self.context) |ctx| {
-        _ = ctx.vtable.Release(ctx);
-        self.context = null;
-    }
-
-    if (self.device) |dev| {
-        _ = dev.vtable.Release(dev);
-        self.device = null;
-    }
+    // Note: We don't release device, context, swap_chain, or back_buffer_rtv here
+    // because they're owned by the Surface and just borrowed by the renderer.
+    // The Surface will release them when it's destroyed.
+    self.device = null;
+    self.context = null;
+    self.swap_chain = null;
+    self.back_buffer_rtv = null;
 
     self.* = undefined;
 }
@@ -166,8 +204,30 @@ pub fn initTarget(self: *const Direct3D11, width: usize, height: usize) !Target 
 
 /// Present the provided target.
 pub fn present(self: *Direct3D11, target: Target) !void {
-    // Present is handled by the swap chain in the Surface
-    _ = target;
+    const context = self.context orelse return error.NoContext;
+    const swap_chain = self.swap_chain orelse return error.NoSwapChain;
+    const back_buffer_rtv = self.back_buffer_rtv orelse return error.NoBackBuffer;
+
+    // Copy the target texture to the back buffer
+    // First, we need to get the back buffer texture from the RTV
+    // For now, we'll use CopyResource if the target has a texture
+    if (target.texture) |target_tex| {
+        // Get the back buffer texture from the swap chain
+        var back_buffer: ?*ID3D11Texture2D = null;
+        const hr = swap_chain.vtable.GetBuffer(swap_chain, 0, &IID_ID3D11Texture2D, @ptrCast(&back_buffer));
+        if (hr >= 0 and back_buffer != null) {
+            defer _ = back_buffer.?.vtable.Release(back_buffer.?);
+
+            // Copy the target texture to the back buffer
+            context.vtable.CopyResource(context, @ptrCast(back_buffer), @ptrCast(target_tex));
+        }
+    }
+
+    // Present the swap chain
+    const present_hr = swap_chain.vtable.Present(swap_chain, 1, 0);
+    if (present_hr < 0) {
+        log.warn("Present failed: 0x{x}", .{@as(u32, @bitCast(present_hr))});
+    }
 
     // Keep track of this target in case we need to repeat it.
     self.last_target = target;
@@ -368,7 +428,15 @@ const DXGI_FORMAT_R8G8B8A8_UNORM_SRGB = 29;
 const DXGI_FORMAT_B8G8R8A8_UNORM = 87;
 const DXGI_FORMAT_B8G8R8A8_UNORM_SRGB = 91;
 
-// COM interface definitions (simplified)
+// IID constants
+const IID_ID3D11Texture2D = GUID{
+    .Data1 = 0x6f15aaf2,
+    .Data2 = 0xd208,
+    .Data3 = 0x4e89,
+    .Data4 = .{ 0x9a, 0xb4, 0x48, 0x95, 0x35, 0xd3, 0x4f, 0x9c },
+};
+
+// COM interface definitions
 const ID3D11DeviceVtbl = extern struct {
     QueryInterface: *const fn (*ID3D11Device, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
     AddRef: *const fn (*ID3D11Device) callconv(.C) u32,
@@ -384,11 +452,102 @@ const ID3D11DeviceContextVtbl = extern struct {
     QueryInterface: *const fn (*ID3D11DeviceContext, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
     AddRef: *const fn (*ID3D11DeviceContext) callconv(.C) u32,
     Release: *const fn (*ID3D11DeviceContext) callconv(.C) u32,
-    // Additional methods would go here
+    // ID3D11DeviceChild methods (3-6)
+    GetDevice: *const anyopaque,
+    GetPrivateData: *const anyopaque,
+    SetPrivateData: *const anyopaque,
+    SetPrivateDataInterface: *const anyopaque,
+    // ID3D11DeviceContext methods (7+)
+    VSSetConstantBuffers: *const anyopaque, // 7
+    PSSetShaderResources: *const anyopaque, // 8
+    PSSetShader: *const anyopaque, // 9
+    PSSetSamplers: *const anyopaque, // 10
+    VSSetShader: *const anyopaque, // 11
+    DrawIndexed: *const anyopaque, // 12
+    Draw: *const anyopaque, // 13
+    Map: *const anyopaque, // 14
+    Unmap: *const anyopaque, // 15
+    PSSetConstantBuffers: *const anyopaque, // 16
+    IASetInputLayout: *const anyopaque, // 17
+    IASetVertexBuffers: *const anyopaque, // 18
+    IASetIndexBuffer: *const anyopaque, // 19
+    DrawIndexedInstanced: *const anyopaque, // 20
+    DrawInstanced: *const anyopaque, // 21
+    GSSetConstantBuffers: *const anyopaque, // 22
+    GSSetShader: *const anyopaque, // 23
+    IASetPrimitiveTopology: *const anyopaque, // 24
+    VSSetShaderResources: *const anyopaque, // 25
+    VSSetSamplers: *const anyopaque, // 26
+    Begin: *const anyopaque, // 27
+    End: *const anyopaque, // 28
+    GetData: *const anyopaque, // 29
+    SetPredication: *const anyopaque, // 30
+    GSSetShaderResources: *const anyopaque, // 31
+    GSSetSamplers: *const anyopaque, // 32
+    OMSetRenderTargets: *const anyopaque, // 33
+    OMSetRenderTargetsAndUnorderedAccessViews: *const anyopaque, // 34
+    OMSetBlendState: *const anyopaque, // 35
+    OMSetDepthStencilState: *const anyopaque, // 36
+    SOSetTargets: *const anyopaque, // 37
+    DrawAuto: *const anyopaque, // 38
+    DrawIndexedInstancedIndirect: *const anyopaque, // 39
+    DrawInstancedIndirect: *const anyopaque, // 40
+    Dispatch: *const anyopaque, // 41
+    DispatchIndirect: *const anyopaque, // 42
+    RSSetState: *const anyopaque, // 43
+    RSSetViewports: *const anyopaque, // 44
+    RSSetScissorRects: *const anyopaque, // 45
+    CopySubresourceRegion: *const anyopaque, // 46
+    CopyResource: *const fn (*ID3D11DeviceContext, *anyopaque, *anyopaque) callconv(.C) void, // 47
 };
 
 const ID3D11DeviceContext = extern struct {
     vtable: *const ID3D11DeviceContextVtbl,
+};
+
+const ID3D11Texture2DVtbl = extern struct {
+    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
+    AddRef: *const fn (*ID3D11Texture2D) callconv(.C) u32,
+    Release: *const fn (*ID3D11Texture2D) callconv(.C) u32,
+};
+
+const ID3D11Texture2D = extern struct {
+    vtable: *const ID3D11Texture2DVtbl,
+};
+
+const ID3D11RenderTargetViewVtbl = extern struct {
+    QueryInterface: *const fn (*ID3D11RenderTargetView, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
+    AddRef: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
+    Release: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
+};
+
+const ID3D11RenderTargetView = extern struct {
+    vtable: *const ID3D11RenderTargetViewVtbl,
+};
+
+const IDXGISwapChainVtbl = extern struct {
+    // IUnknown (0-2)
+    QueryInterface: *const fn (*IDXGISwapChain, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
+    AddRef: *const fn (*IDXGISwapChain) callconv(.C) u32,
+    Release: *const fn (*IDXGISwapChain) callconv(.C) u32,
+    // IDXGIObject (3-6)
+    SetPrivateData: *const anyopaque,
+    SetPrivateDataInterface: *const anyopaque,
+    GetPrivateData: *const anyopaque,
+    GetParent: *const anyopaque,
+    // IDXGIDeviceSubObject (7)
+    GetDevice: *const anyopaque,
+    // IDXGISwapChain (8+)
+    Present: *const fn (*IDXGISwapChain, UINT, UINT) callconv(.C) HRESULT,
+    GetBuffer: *const fn (*IDXGISwapChain, UINT, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
+    SetFullscreenState: *const anyopaque,
+    GetFullscreenState: *const anyopaque,
+    GetDesc: *const anyopaque,
+    ResizeBuffers: *const anyopaque,
+};
+
+const IDXGISwapChain = extern struct {
+    vtable: *const IDXGISwapChainVtbl,
 };
 
 test {
