@@ -217,9 +217,9 @@ const UINT8 = u8;
 const GUID = extern struct { Data1: u32, Data2: u16, Data3: u16, Data4: [8]u8 };
 
 const IUnknownVtbl = extern struct {
-    QueryInterface: *const fn (*anyopaque, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*anyopaque) callconv(.C) u32,
-    Release: *const fn (*anyopaque) callconv(.C) u32,
+    QueryInterface: *const fn (*anyopaque, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*anyopaque) callconv(.c) u32,
+    Release: *const fn (*anyopaque) callconv(.c) u32,
 };
 
 pub const ID3D11VertexShader = extern struct {
@@ -292,17 +292,17 @@ const ID3D11DeviceVtbl = extern struct {
     CreateRenderTargetView: *const anyopaque, // 9
     CreateDepthStencilView: *const anyopaque, // 10
     CreateInputLayout: *const anyopaque, // 11
-    CreateVertexShader: *const fn (*ID3D11Device, [*]const u8, usize, ?*anyopaque, *?*ID3D11VertexShader) callconv(.C) HRESULT, // 12
+    CreateVertexShader: *const fn (*ID3D11Device, [*]const u8, usize, ?*anyopaque, *?*ID3D11VertexShader) callconv(.c) HRESULT, // 12
     CreateGeometryShader: *const anyopaque, // 13
     CreateGeometryShaderWithStreamOutput: *const anyopaque, // 14
-    CreatePixelShader: *const fn (*ID3D11Device, [*]const u8, usize, ?*anyopaque, *?*ID3D11PixelShader) callconv(.C) HRESULT, // 15
+    CreatePixelShader: *const fn (*ID3D11Device, [*]const u8, usize, ?*anyopaque, *?*ID3D11PixelShader) callconv(.c) HRESULT, // 15
     CreateHullShader: *const anyopaque, // 16
     CreateDomainShader: *const anyopaque, // 17
     CreateComputeShader: *const anyopaque, // 18
     CreateClassLinkage: *const anyopaque, // 19
-    CreateBlendState: *const fn (*ID3D11Device, *const D3D11_BLEND_DESC, *?*ID3D11BlendState) callconv(.C) HRESULT, // 20
+    CreateBlendState: *const fn (*ID3D11Device, *const D3D11_BLEND_DESC, *?*ID3D11BlendState) callconv(.c) HRESULT, // 20
     CreateDepthStencilState: *const anyopaque, // 21
-    CreateRasterizerState: *const fn (*ID3D11Device, *const D3D11_RASTERIZER_DESC, *?*ID3D11RasterizerState) callconv(.C) HRESULT, // 22
+    CreateRasterizerState: *const fn (*ID3D11Device, *const D3D11_RASTERIZER_DESC, *?*ID3D11RasterizerState) callconv(.c) HRESULT, // 22
     // ... more methods
 };
 
@@ -324,15 +324,15 @@ const ID3D11DeviceContextVtbl = extern struct {
     // ID3D11DeviceContext (7+)
     VSSetConstantBuffers: *const anyopaque, // 7
     PSSetShaderResources: *const anyopaque, // 8
-    PSSetShader: *const fn (*ID3D11DeviceContext, ?*ID3D11PixelShader, ?*anyopaque, UINT) callconv(.C) void, // 9
+    PSSetShader: *const fn (*ID3D11DeviceContext, ?*ID3D11PixelShader, ?*anyopaque, UINT) callconv(.c) void, // 9
     PSSetSamplers: *const anyopaque, // 10
-    VSSetShader: *const fn (*ID3D11DeviceContext, ?*ID3D11VertexShader, ?*anyopaque, UINT) callconv(.C) void, // 11
+    VSSetShader: *const fn (*ID3D11DeviceContext, ?*ID3D11VertexShader, ?*anyopaque, UINT) callconv(.c) void, // 11
     DrawIndexed: *const anyopaque, // 12
     Draw: *const anyopaque, // 13
     Map: *const anyopaque, // 14
     Unmap: *const anyopaque, // 15
     PSSetConstantBuffers: *const anyopaque, // 16
-    IASetInputLayout: *const fn (*ID3D11DeviceContext, ?*ID3D11InputLayout) callconv(.C) void, // 17
+    IASetInputLayout: *const fn (*ID3D11DeviceContext, ?*ID3D11InputLayout) callconv(.c) void, // 17
     IASetVertexBuffers: *const anyopaque, // 18
     IASetIndexBuffer: *const anyopaque, // 19
     DrawIndexedInstanced: *const anyopaque, // 20
@@ -350,15 +350,15 @@ const ID3D11DeviceContextVtbl = extern struct {
     GSSetSamplers: *const anyopaque, // 32
     OMSetRenderTargets: *const anyopaque, // 33
     OMSetRenderTargetsAndUnorderedAccessViews: *const anyopaque, // 34
-    OMSetBlendState: *const fn (*ID3D11DeviceContext, ?*ID3D11BlendState, ?*const [4]f32, UINT) callconv(.C) void, // 35
-    OMSetDepthStencilState: *const fn (*ID3D11DeviceContext, ?*ID3D11DepthStencilState, UINT) callconv(.C) void, // 36
+    OMSetBlendState: *const fn (*ID3D11DeviceContext, ?*ID3D11BlendState, ?*const [4]f32, UINT) callconv(.c) void, // 35
+    OMSetDepthStencilState: *const fn (*ID3D11DeviceContext, ?*ID3D11DepthStencilState, UINT) callconv(.c) void, // 36
     SOSetTargets: *const anyopaque, // 37
     DrawAuto: *const anyopaque, // 38
     DrawIndexedInstancedIndirect: *const anyopaque, // 39
     DrawInstancedIndirect: *const anyopaque, // 40
     Dispatch: *const anyopaque, // 41
     DispatchIndirect: *const anyopaque, // 42
-    RSSetState: *const fn (*ID3D11DeviceContext, ?*ID3D11RasterizerState) callconv(.C) void, // 43
+    RSSetState: *const fn (*ID3D11DeviceContext, ?*ID3D11RasterizerState) callconv(.c) void, // 43
     // ... more methods
 };
 

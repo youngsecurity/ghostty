@@ -213,24 +213,24 @@ pub const ID3D11DeviceContextVtbl = extern struct {
     SetPrivateData: *const anyopaque,
     SetPrivateDataInterface: *const anyopaque,
     // ID3D11DeviceContext (7+)
-    VSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*anyopaque) callconv(.C) void, // 7
+    VSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*anyopaque) callconv(.c) void, // 7
     PSSetShaderResources: *const anyopaque, // 8
     PSSetShader: *const anyopaque, // 9
     PSSetSamplers: *const anyopaque, // 10
     VSSetShader: *const anyopaque, // 11
     DrawIndexed: *const anyopaque, // 12
-    Draw: *const fn (*ID3D11DeviceContext, UINT, UINT) callconv(.C) void, // 13
+    Draw: *const fn (*ID3D11DeviceContext, UINT, UINT) callconv(.c) void, // 13
     Map: *const anyopaque, // 14
     Unmap: *const anyopaque, // 15
-    PSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*anyopaque) callconv(.C) void, // 16
+    PSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*anyopaque) callconv(.c) void, // 16
     IASetInputLayout: *const anyopaque, // 17
     IASetVertexBuffers: *const anyopaque, // 18
     IASetIndexBuffer: *const anyopaque, // 19
     DrawIndexedInstanced: *const anyopaque, // 20
-    DrawInstanced: *const fn (*ID3D11DeviceContext, UINT, UINT, UINT, UINT) callconv(.C) void, // 21
+    DrawInstanced: *const fn (*ID3D11DeviceContext, UINT, UINT, UINT, UINT) callconv(.c) void, // 21
     GSSetConstantBuffers: *const anyopaque, // 22
     GSSetShader: *const anyopaque, // 23
-    IASetPrimitiveTopology: *const fn (*ID3D11DeviceContext, UINT) callconv(.C) void, // 24
+    IASetPrimitiveTopology: *const fn (*ID3D11DeviceContext, UINT) callconv(.c) void, // 24
     VSSetShaderResources: *const anyopaque, // 25
     VSSetSamplers: *const anyopaque, // 26
     Begin: *const anyopaque, // 27
@@ -250,7 +250,7 @@ pub const ID3D11DeviceContextVtbl = extern struct {
     Dispatch: *const anyopaque, // 41
     DispatchIndirect: *const anyopaque, // 42
     RSSetState: *const anyopaque, // 43
-    RSSetViewports: *const fn (*ID3D11DeviceContext, UINT, [*]const D3D11_VIEWPORT) callconv(.C) void, // 44
+    RSSetViewports: *const fn (*ID3D11DeviceContext, UINT, [*]const D3D11_VIEWPORT) callconv(.c) void, // 44
     // ... more methods
 };
 

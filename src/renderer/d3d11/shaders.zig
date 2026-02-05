@@ -308,10 +308,10 @@ const HRESULT = i32;
 
 const ID3DBlobVtbl = extern struct {
     QueryInterface: *const anyopaque,
-    AddRef: *const fn (*ID3DBlob) callconv(.C) u32,
-    Release: *const fn (*ID3DBlob) callconv(.C) u32,
-    GetBufferPointer: *const fn (*ID3DBlob) callconv(.C) ?*anyopaque,
-    GetBufferSize: *const fn (*ID3DBlob) callconv(.C) usize,
+    AddRef: *const fn (*ID3DBlob) callconv(.c) u32,
+    Release: *const fn (*ID3DBlob) callconv(.c) u32,
+    GetBufferPointer: *const fn (*ID3DBlob) callconv(.c) ?*anyopaque,
+    GetBufferSize: *const fn (*ID3DBlob) callconv(.c) usize,
 };
 
 const ID3DBlob = extern struct {
@@ -342,7 +342,7 @@ extern "d3dcompiler_47" fn D3DCompile(
     Flags2: u32,
     ppCode: *?*ID3DBlob,
     ppErrorMsgs: *?*ID3DBlob,
-) callconv(.C) HRESULT;
+) callconv(.c) HRESULT;
 
 // =============================================================================
 // HLSL Shader Sources
