@@ -174,9 +174,9 @@ const D3D11_RENDER_TARGET_VIEW_DESC = extern struct {
 };
 
 const ID3D11RenderTargetViewVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11RenderTargetView, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
-    Release: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11RenderTargetView, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11RenderTargetView) callconv(.c) u32,
+    Release: *const fn (*ID3D11RenderTargetView) callconv(.c) u32,
 };
 
 pub const ID3D11RenderTargetView = extern struct {
@@ -184,9 +184,9 @@ pub const ID3D11RenderTargetView = extern struct {
 };
 
 const ID3D11Texture2DVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11Texture2D) callconv(.C) u32,
-    Release: *const fn (*ID3D11Texture2D) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11Texture2D) callconv(.c) u32,
+    Release: *const fn (*ID3D11Texture2D) callconv(.c) u32,
 };
 
 pub const ID3D11Texture2D = extern struct {
@@ -201,11 +201,11 @@ const ID3D11DeviceVtbl = extern struct {
     // ID3D11Device (3+)
     CreateBuffer: *const anyopaque, // 3
     CreateTexture1D: *const anyopaque, // 4
-    CreateTexture2D: *const fn (*ID3D11Device, *const D3D11_TEXTURE2D_DESC, ?*anyopaque, *?*ID3D11Texture2D) callconv(.C) HRESULT, // 5
+    CreateTexture2D: *const fn (*ID3D11Device, *const D3D11_TEXTURE2D_DESC, ?*anyopaque, *?*ID3D11Texture2D) callconv(.c) HRESULT, // 5
     CreateTexture3D: *const anyopaque, // 6
     CreateShaderResourceView: *const anyopaque, // 7
     CreateUnorderedAccessView: *const anyopaque, // 8
-    CreateRenderTargetView: *const fn (*ID3D11Device, *anyopaque, ?*const D3D11_RENDER_TARGET_VIEW_DESC, *?*ID3D11RenderTargetView) callconv(.C) HRESULT, // 9
+    CreateRenderTargetView: *const fn (*ID3D11Device, *anyopaque, ?*const D3D11_RENDER_TARGET_VIEW_DESC, *?*ID3D11RenderTargetView) callconv(.c) HRESULT, // 9
     // ... more methods
 };
 
@@ -247,7 +247,7 @@ const ID3D11DeviceContextVtbl = extern struct {
     SetPredication: *const anyopaque,
     GSSetShaderResources: *const anyopaque,
     GSSetSamplers: *const anyopaque,
-    OMSetRenderTargets: *const fn (*ID3D11DeviceContext, UINT, [*]const ?*ID3D11RenderTargetView, ?*anyopaque) callconv(.C) void,
+    OMSetRenderTargets: *const fn (*ID3D11DeviceContext, UINT, [*]const ?*ID3D11RenderTargetView, ?*anyopaque) callconv(.c) void,
     OMSetRenderTargetsAndUnorderedAccessViews: *const anyopaque,
     OMSetBlendState: *const anyopaque,
     OMSetDepthStencilState: *const anyopaque,
@@ -264,7 +264,7 @@ const ID3D11DeviceContextVtbl = extern struct {
     CopyResource: *const anyopaque,
     UpdateSubresource: *const anyopaque,
     CopyStructureCount: *const anyopaque,
-    ClearRenderTargetView: *const fn (*ID3D11DeviceContext, *ID3D11RenderTargetView, *const [4]f32) callconv(.C) void,
+    ClearRenderTargetView: *const fn (*ID3D11DeviceContext, *ID3D11RenderTargetView, *const [4]f32) callconv(.c) void,
 };
 
 const ID3D11DeviceContext = extern struct {

@@ -179,9 +179,9 @@ const D3D11_SAMPLER_DESC = extern struct {
 };
 
 const ID3D11SamplerStateVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11SamplerState, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11SamplerState) callconv(.C) u32,
-    Release: *const fn (*ID3D11SamplerState) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11SamplerState, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11SamplerState) callconv(.c) u32,
+    Release: *const fn (*ID3D11SamplerState) callconv(.c) u32,
 };
 
 pub const ID3D11SamplerState = extern struct {
@@ -215,7 +215,7 @@ const ID3D11DeviceVtbl = extern struct {
     CreateBlendState: *const anyopaque, // 20
     CreateDepthStencilState: *const anyopaque, // 21
     CreateRasterizerState: *const anyopaque, // 22
-    CreateSamplerState: *const fn (*ID3D11Device, *const D3D11_SAMPLER_DESC, *?*ID3D11SamplerState) callconv(.C) HRESULT, // 23
+    CreateSamplerState: *const fn (*ID3D11Device, *const D3D11_SAMPLER_DESC, *?*ID3D11SamplerState) callconv(.c) HRESULT, // 23
     // ... more methods
 };
 
@@ -234,7 +234,7 @@ const ID3D11DeviceContextVtbl = extern struct {
     VSSetConstantBuffers: *const anyopaque,
     PSSetShaderResources: *const anyopaque,
     PSSetShader: *const anyopaque,
-    PSSetSamplers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11SamplerState) callconv(.C) void,
+    PSSetSamplers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11SamplerState) callconv(.c) void,
     VSSetShader: *const anyopaque,
     DrawIndexed: *const anyopaque,
     Draw: *const anyopaque,
@@ -250,7 +250,7 @@ const ID3D11DeviceContextVtbl = extern struct {
     GSSetShader: *const anyopaque,
     IASetPrimitiveTopology: *const anyopaque,
     VSSetShaderResources: *const anyopaque,
-    VSSetSamplers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11SamplerState) callconv(.C) void,
+    VSSetSamplers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11SamplerState) callconv(.c) void,
 };
 
 const ID3D11DeviceContext = extern struct {

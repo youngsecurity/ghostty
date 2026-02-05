@@ -57,6 +57,10 @@ pub fn deinit() void {
     log.info("Deinitializing YStty Windows runtime", .{});
 }
 
+/// Get the resources directory for Windows
+/// Re-exports the OS-level resourcesDir function
+pub const resourcesDir = @import("../os/resourcesdir.zig").resourcesDir;
+
 test {
     _ = App;
     _ = Surface;

@@ -384,9 +384,9 @@ const D3D11_MAPPED_SUBRESOURCE = extern struct {
 // ID3D11Buffer COM interface
 const ID3D11BufferVtbl = extern struct {
     // IUnknown
-    QueryInterface: *const fn (*ID3D11Buffer, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11Buffer) callconv(.C) u32,
-    Release: *const fn (*ID3D11Buffer) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11Buffer, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11Buffer) callconv(.c) u32,
+    Release: *const fn (*ID3D11Buffer) callconv(.c) u32,
     // ID3D11DeviceChild
     GetDevice: *const anyopaque,
     GetPrivateData: *const anyopaque,
@@ -416,7 +416,7 @@ const ID3D11DeviceVtbl = extern struct {
         *const D3D11_BUFFER_DESC,
         ?*const D3D11_SUBRESOURCE_DATA,
         *?*ID3D11Buffer,
-    ) callconv(.C) HRESULT,
+    ) callconv(.c) HRESULT,
     // ... more methods
 };
 
@@ -436,19 +436,19 @@ pub const ID3D11DeviceContextVtbl = extern struct {
     SetPrivateData: *const anyopaque,
     SetPrivateDataInterface: *const anyopaque,
     // ID3D11DeviceContext (7+)
-    VSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11Buffer) callconv(.C) void, // 7
+    VSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11Buffer) callconv(.c) void, // 7
     PSSetShaderResources: *const anyopaque, // 8
     PSSetShader: *const anyopaque, // 9
     PSSetSamplers: *const anyopaque, // 10
     VSSetShader: *const anyopaque, // 11
     DrawIndexed: *const anyopaque, // 12
     Draw: *const anyopaque, // 13
-    Map: *const fn (*ID3D11DeviceContext, ?*anyopaque, UINT, UINT, UINT, *D3D11_MAPPED_SUBRESOURCE) callconv(.C) HRESULT, // 14
-    Unmap: *const fn (*ID3D11DeviceContext, ?*anyopaque, UINT) callconv(.C) void, // 15
-    PSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11Buffer) callconv(.C) void, // 16
+    Map: *const fn (*ID3D11DeviceContext, ?*anyopaque, UINT, UINT, UINT, *D3D11_MAPPED_SUBRESOURCE) callconv(.c) HRESULT, // 14
+    Unmap: *const fn (*ID3D11DeviceContext, ?*anyopaque, UINT) callconv(.c) void, // 15
+    PSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11Buffer) callconv(.c) void, // 16
     IASetInputLayout: *const anyopaque, // 17
-    IASetVertexBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11Buffer, [*]const UINT, [*]const UINT) callconv(.C) void, // 18
-    IASetIndexBuffer: *const fn (*ID3D11DeviceContext, *ID3D11Buffer, UINT, UINT) callconv(.C) void, // 19
+    IASetVertexBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11Buffer, [*]const UINT, [*]const UINT) callconv(.c) void, // 18
+    IASetIndexBuffer: *const fn (*ID3D11DeviceContext, *ID3D11Buffer, UINT, UINT) callconv(.c) void, // 19
     // ... more methods
 };
 

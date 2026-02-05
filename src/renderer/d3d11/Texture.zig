@@ -380,9 +380,9 @@ const D3D11_SHADER_RESOURCE_VIEW_DESC = extern struct {
 // ID3D11Texture2D COM interface
 const ID3D11Texture2DVtbl = extern struct {
     // IUnknown
-    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11Texture2D) callconv(.C) u32,
-    Release: *const fn (*ID3D11Texture2D) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11Texture2D) callconv(.c) u32,
+    Release: *const fn (*ID3D11Texture2D) callconv(.c) u32,
     // ID3D11DeviceChild
     GetDevice: *const anyopaque,
     GetPrivateData: *const anyopaque,
@@ -403,9 +403,9 @@ const ID3D11Texture2D = extern struct {
 // ID3D11ShaderResourceView COM interface
 const ID3D11ShaderResourceViewVtbl = extern struct {
     // IUnknown
-    QueryInterface: *const fn (*ID3D11ShaderResourceView, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11ShaderResourceView) callconv(.C) u32,
-    Release: *const fn (*ID3D11ShaderResourceView) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11ShaderResourceView, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11ShaderResourceView) callconv(.c) u32,
+    Release: *const fn (*ID3D11ShaderResourceView) callconv(.c) u32,
     // ID3D11DeviceChild
     GetDevice: *const anyopaque,
     GetPrivateData: *const anyopaque,
@@ -424,9 +424,9 @@ pub const ID3D11ShaderResourceView = extern struct {
 // ID3D11Device COM interface (partial - methods we need)
 const ID3D11DeviceVtbl = extern struct {
     // IUnknown (0-2)
-    QueryInterface: *const fn (*ID3D11Device, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11Device) callconv(.C) u32,
-    Release: *const fn (*ID3D11Device) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11Device, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11Device) callconv(.c) u32,
+    Release: *const fn (*ID3D11Device) callconv(.c) u32,
     // ID3D11Device methods (3+)
     CreateBuffer: *const anyopaque,
     CreateTexture1D: *const anyopaque,
@@ -435,14 +435,14 @@ const ID3D11DeviceVtbl = extern struct {
         *const D3D11_TEXTURE2D_DESC,
         ?*const D3D11_SUBRESOURCE_DATA,
         *?*ID3D11Texture2D,
-    ) callconv(.C) HRESULT,
+    ) callconv(.c) HRESULT,
     CreateTexture3D: *const anyopaque,
     CreateShaderResourceView: *const fn (
         *ID3D11Device,
         ?*anyopaque, // ID3D11Resource*
         ?*const D3D11_SHADER_RESOURCE_VIEW_DESC,
         *?*ID3D11ShaderResourceView,
-    ) callconv(.C) HRESULT,
+    ) callconv(.c) HRESULT,
     // ... more methods not needed here
 };
 
@@ -463,7 +463,7 @@ pub const ID3D11DeviceContextVtbl = extern struct {
     SetPrivateDataInterface: *const anyopaque,
     // ID3D11DeviceContext (7+)
     VSSetConstantBuffers: *const anyopaque, // 7
-    PSSetShaderResources: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11ShaderResourceView) callconv(.C) void, // 8
+    PSSetShaderResources: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11ShaderResourceView) callconv(.c) void, // 8
     PSSetShader: *const anyopaque, // 9
     PSSetSamplers: *const anyopaque, // 10
     VSSetShader: *const anyopaque, // 11
@@ -480,7 +480,7 @@ pub const ID3D11DeviceContextVtbl = extern struct {
     GSSetConstantBuffers: *const anyopaque, // 22
     GSSetShader: *const anyopaque, // 23
     IASetPrimitiveTopology: *const anyopaque, // 24
-    VSSetShaderResources: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11ShaderResourceView) callconv(.C) void, // 25
+    VSSetShaderResources: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*ID3D11ShaderResourceView) callconv(.c) void, // 25
     VSSetSamplers: *const anyopaque, // 26
     Begin: *const anyopaque, // 27
     End: *const anyopaque, // 28
@@ -511,7 +511,7 @@ pub const ID3D11DeviceContextVtbl = extern struct {
         ?*const anyopaque, // pSrcData
         UINT, // SrcRowPitch
         UINT, // SrcDepthPitch
-    ) callconv(.C) void, // 48
+    ) callconv(.c) void, // 48
     // ... more methods after this
 };
 

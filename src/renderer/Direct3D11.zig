@@ -439,9 +439,9 @@ const IID_ID3D11Texture2D = GUID{
 
 // COM interface definitions
 const ID3D11DeviceVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11Device, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11Device) callconv(.C) u32,
-    Release: *const fn (*ID3D11Device) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11Device, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11Device) callconv(.c) u32,
+    Release: *const fn (*ID3D11Device) callconv(.c) u32,
     // Additional methods would go here
 };
 
@@ -450,9 +450,9 @@ const ID3D11Device = extern struct {
 };
 
 const ID3D11DeviceContextVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11DeviceContext, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11DeviceContext) callconv(.C) u32,
-    Release: *const fn (*ID3D11DeviceContext) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11DeviceContext, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11DeviceContext) callconv(.c) u32,
+    Release: *const fn (*ID3D11DeviceContext) callconv(.c) u32,
     // ID3D11DeviceChild methods (3-6)
     GetDevice: *const anyopaque,
     GetPrivateData: *const anyopaque,
@@ -499,7 +499,7 @@ const ID3D11DeviceContextVtbl = extern struct {
     RSSetViewports: *const anyopaque, // 44
     RSSetScissorRects: *const anyopaque, // 45
     CopySubresourceRegion: *const anyopaque, // 46
-    CopyResource: *const fn (*ID3D11DeviceContext, *anyopaque, *anyopaque) callconv(.C) void, // 47
+    CopyResource: *const fn (*ID3D11DeviceContext, *anyopaque, *anyopaque) callconv(.c) void, // 47
 };
 
 const ID3D11DeviceContext = extern struct {
@@ -507,9 +507,9 @@ const ID3D11DeviceContext = extern struct {
 };
 
 const ID3D11Texture2DVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11Texture2D) callconv(.C) u32,
-    Release: *const fn (*ID3D11Texture2D) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11Texture2D) callconv(.c) u32,
+    Release: *const fn (*ID3D11Texture2D) callconv(.c) u32,
 };
 
 const ID3D11Texture2D = extern struct {
@@ -517,9 +517,9 @@ const ID3D11Texture2D = extern struct {
 };
 
 const ID3D11RenderTargetViewVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11RenderTargetView, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
-    Release: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11RenderTargetView, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11RenderTargetView) callconv(.c) u32,
+    Release: *const fn (*ID3D11RenderTargetView) callconv(.c) u32,
 };
 
 const ID3D11RenderTargetView = extern struct {
@@ -528,9 +528,9 @@ const ID3D11RenderTargetView = extern struct {
 
 const IDXGISwapChainVtbl = extern struct {
     // IUnknown (0-2)
-    QueryInterface: *const fn (*IDXGISwapChain, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*IDXGISwapChain) callconv(.C) u32,
-    Release: *const fn (*IDXGISwapChain) callconv(.C) u32,
+    QueryInterface: *const fn (*IDXGISwapChain, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*IDXGISwapChain) callconv(.c) u32,
+    Release: *const fn (*IDXGISwapChain) callconv(.c) u32,
     // IDXGIObject (3-6)
     SetPrivateData: *const anyopaque,
     SetPrivateDataInterface: *const anyopaque,
@@ -539,8 +539,8 @@ const IDXGISwapChainVtbl = extern struct {
     // IDXGIDeviceSubObject (7)
     GetDevice: *const anyopaque,
     // IDXGISwapChain (8+)
-    Present: *const fn (*IDXGISwapChain, UINT, UINT) callconv(.C) HRESULT,
-    GetBuffer: *const fn (*IDXGISwapChain, UINT, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
+    Present: *const fn (*IDXGISwapChain, UINT, UINT) callconv(.c) HRESULT,
+    GetBuffer: *const fn (*IDXGISwapChain, UINT, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
     SetFullscreenState: *const anyopaque,
     GetFullscreenState: *const anyopaque,
     GetDesc: *const anyopaque,
