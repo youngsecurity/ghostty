@@ -11,6 +11,7 @@ const builtin = @import("builtin");
 
 const apprt = @import("../../apprt.zig");
 const configpkg = @import("../../config.zig");
+const Config = configpkg.Config;
 const input = @import("../../input.zig");
 const CoreApp = @import("../../App.zig");
 const CoreSurface = @import("../../Surface.zig");
@@ -25,6 +26,9 @@ core_app: *CoreApp,
 
 /// Allocator for app-level allocations
 alloc: Allocator,
+
+/// Application configuration
+config: Config,
 
 /// Window class atom (registered once per process)
 window_class: u16,
@@ -50,6 +54,10 @@ pub fn init(
 
     log.info("Initializing YStty Windows application", .{});
 
+    // Create a default configuration
+    var config = try Config.default(alloc);
+    errdefer config.deinit();
+
     // Get the module instance handle
     const hinstance = getModuleHandle() orelse return error.NoModuleHandle;
 
@@ -59,6 +67,7 @@ pub fn init(
     self.* = App{
         .core_app = core_app,
         .alloc = alloc,
+        .config = config,
         .window_class = window_class,
         .hinstance = hinstance,
         .should_quit = false,
@@ -76,6 +85,9 @@ pub fn terminate(self: *App) void {
         self.alloc.destroy(surface);
     }
     self.surfaces.deinit(self.alloc);
+
+    // Free the configuration
+    self.config.deinit();
 
     // Unregister window class
     unregisterWindowClass(self.window_class, self.hinstance);

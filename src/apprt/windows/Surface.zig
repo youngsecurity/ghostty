@@ -116,7 +116,7 @@ pub fn init(self: *Surface, app: *App, opts: Options) !void {
     errdefer app.core_app.deleteSurface(self);
 
     // Create a configuration for this surface
-    var config = try apprt.surface.newConfig(app.core_app, app.config, opts.context);
+    var config = try apprt.surface.newConfig(app.core_app, &app.config, opts.context);
     defer config.deinit();
 
     // Set working directory if provided
@@ -376,51 +376,51 @@ pub fn handleTextInput(self: *Surface, text: []const u8) void {
 // Virtual Key Mapping
 // =============================================================================
 
-fn mapVirtualKey(vk: u32, scancode: u32) input.Key {
+fn mapVirtualKey(vk: u32, scancode: u32) input.key.Key {
     _ = scancode;
 
     return switch (vk) {
-        // Letters
-        0x41 => .a,
-        0x42 => .b,
-        0x43 => .c,
-        0x44 => .d,
-        0x45 => .e,
-        0x46 => .f,
-        0x47 => .g,
-        0x48 => .h,
-        0x49 => .i,
-        0x4A => .j,
-        0x4B => .k,
-        0x4C => .l,
-        0x4D => .m,
-        0x4E => .n,
-        0x4F => .o,
-        0x50 => .p,
-        0x51 => .q,
-        0x52 => .r,
-        0x53 => .s,
-        0x54 => .t,
-        0x55 => .u,
-        0x56 => .v,
-        0x57 => .w,
-        0x58 => .x,
-        0x59 => .y,
-        0x5A => .z,
+        // Letters (VK_A through VK_Z: 0x41-0x5A)
+        0x41 => .key_a,
+        0x42 => .key_b,
+        0x43 => .key_c,
+        0x44 => .key_d,
+        0x45 => .key_e,
+        0x46 => .key_f,
+        0x47 => .key_g,
+        0x48 => .key_h,
+        0x49 => .key_i,
+        0x4A => .key_j,
+        0x4B => .key_k,
+        0x4C => .key_l,
+        0x4D => .key_m,
+        0x4E => .key_n,
+        0x4F => .key_o,
+        0x50 => .key_p,
+        0x51 => .key_q,
+        0x52 => .key_r,
+        0x53 => .key_s,
+        0x54 => .key_t,
+        0x55 => .key_u,
+        0x56 => .key_v,
+        0x57 => .key_w,
+        0x58 => .key_x,
+        0x59 => .key_y,
+        0x5A => .key_z,
 
-        // Numbers
-        0x30 => .zero,
-        0x31 => .one,
-        0x32 => .two,
-        0x33 => .three,
-        0x34 => .four,
-        0x35 => .five,
-        0x36 => .six,
-        0x37 => .seven,
-        0x38 => .eight,
-        0x39 => .nine,
+        // Numbers (VK_0 through VK_9: 0x30-0x39)
+        0x30 => .digit_0,
+        0x31 => .digit_1,
+        0x32 => .digit_2,
+        0x33 => .digit_3,
+        0x34 => .digit_4,
+        0x35 => .digit_5,
+        0x36 => .digit_6,
+        0x37 => .digit_7,
+        0x38 => .digit_8,
+        0x39 => .digit_9,
 
-        // Function keys
+        // Function keys (VK_F1 through VK_F12: 0x70-0x7B)
         0x70 => .f1,
         0x71 => .f2,
         0x72 => .f3,
@@ -435,28 +435,28 @@ fn mapVirtualKey(vk: u32, scancode: u32) input.Key {
         0x7B => .f12,
 
         // Control keys
-        0x08 => .backspace,
-        0x09 => .tab,
-        0x0D => .enter,
-        0x1B => .escape,
-        0x20 => .space,
-        0x2E => .delete,
-        0x2D => .insert,
-        0x24 => .home,
-        0x23 => .end,
-        0x21 => .page_up,
-        0x22 => .page_down,
+        0x08 => .backspace, // VK_BACK
+        0x09 => .tab, // VK_TAB
+        0x0D => .enter, // VK_RETURN
+        0x1B => .escape, // VK_ESCAPE
+        0x20 => .space, // VK_SPACE
+        0x2E => .delete, // VK_DELETE
+        0x2D => .insert, // VK_INSERT
+        0x24 => .home, // VK_HOME
+        0x23 => .end, // VK_END
+        0x21 => .page_up, // VK_PRIOR
+        0x22 => .page_down, // VK_NEXT
 
         // Arrow keys
-        0x25 => .left,
-        0x26 => .up,
-        0x27 => .right,
-        0x28 => .down,
+        0x25 => .arrow_left, // VK_LEFT
+        0x26 => .arrow_up, // VK_UP
+        0x27 => .arrow_right, // VK_RIGHT
+        0x28 => .arrow_down, // VK_DOWN
 
         // Modifiers
-        0x10 => .left_shift,
-        0x11 => .left_control,
-        0x12 => .left_alt,
+        0x10 => .shift_left, // VK_SHIFT (generic, left assumed)
+        0x11 => .control_left, // VK_CONTROL (generic, left assumed)
+        0x12 => .alt_left, // VK_MENU (generic, left assumed)
 
         else => .unidentified,
     };
