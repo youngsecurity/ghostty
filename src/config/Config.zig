@@ -4478,6 +4478,7 @@ pub fn finalize(self: *Config) !void {
                     .true,
             }
         },
+        .windows => {},
     }
 
     // If we have the special value "inherit" then set it to null which
