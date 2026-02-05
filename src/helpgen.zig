@@ -11,9 +11,26 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const alloc = gpa.allocator();
 
+    // Get output file from args, or use stdout as fallback
+    var args = std.process.args();
+    _ = args.next(); // skip program name
+    const output_path = args.next();
+
     var buf: [4096]u8 = undefined;
-    var stdout = std.fs.File.stdout().writer(&buf);
-    const writer = &stdout.interface;
+
+    // Open output file or stdout
+    const output_file = if (output_path) |path|
+        std.fs.cwd().createFile(path, .{}) catch |err| {
+            std.debug.print("Failed to create output file '{s}': {}\n", .{ path, err });
+            return err;
+        }
+    else
+        std.fs.File.stdout();
+    defer if (output_path != null) output_file.close();
+
+    var writer_impl = output_file.writer(&buf);
+    const writer = &writer_impl.interface;
+
     try writer.writeAll(
         \\// THIS FILE IS AUTO GENERATED
         \\
@@ -24,10 +41,9 @@ pub fn main() !void {
     try genActions(alloc, writer);
     try genKeybindActions(alloc, writer);
 
-    // On Windows, stdout is a console handle which doesn't support ftruncate.
-    // The build system captures stdout to a file, so the data is already written.
-    // We just need to flush, not truncate.
-    stdout.end() catch |err| switch (err) {
+    // Flush the buffer. On Windows with stdout, end() can fail with FileTooBig
+    // because console handles don't support ftruncate.
+    writer_impl.end() catch |err| switch (err) {
         error.FileTooBig => {}, // Windows console handle doesn't support truncate
         else => return err,
     };
