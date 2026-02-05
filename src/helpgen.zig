@@ -12,7 +12,9 @@ pub fn main() !void {
     const alloc = gpa.allocator();
 
     // Get output file from args, or use stdout as fallback
-    var args = std.process.args();
+    // On Windows, we must use argsWithAllocator
+    var args = try std.process.argsWithAllocator(alloc);
+    defer args.deinit();
     _ = args.next(); // skip program name
     const output_path = args.next();
 
