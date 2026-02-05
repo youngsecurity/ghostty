@@ -17,7 +17,6 @@ const CoreSurface = @import("../../Surface.zig");
 
 const Surface = @import("Surface.zig");
 const windows = @import("../windows.zig");
-const win32 = windows.win32;
 
 const log = std.log.scoped(.windows_app);
 
@@ -85,7 +84,7 @@ pub fn run(self: *App) !void {
     log.info("Starting YStty main loop", .{});
 
     // Create the initial surface/window
-    _ = try self.createSurface();
+    _ = try self.createSurface(.{});
 
     // Win32 message loop
     while (!self.should_quit) {
@@ -112,11 +111,11 @@ pub fn run(self: *App) !void {
 }
 
 /// Create a new terminal surface/window
-pub fn createSurface(self: *App) !*Surface {
+pub fn createSurface(self: *App, opts: Surface.Options) !*Surface {
     const surface = try self.alloc.create(Surface);
     errdefer self.alloc.destroy(surface);
 
-    surface.* = try Surface.init(self);
+    try surface.init(self, opts);
     errdefer surface.deinit();
 
     try self.surfaces.append(self.alloc, surface);
@@ -142,16 +141,71 @@ pub fn removeSurface(self: *App, surface: *Surface) void {
 /// Tick the application (process pending work)
 fn tick(self: *App) !void {
     // Process any pending core app work
-    _ = self;
+    self.core_app.tick(self);
 
-    // Sleep briefly to avoid busy-waiting
-    std.time.sleep(1_000_000); // 1ms
+    // Render all surfaces
+    for (self.surfaces.items) |surface| {
+        surface.render() catch |err| {
+            log.warn("Render failed: {}", .{err});
+        };
+    }
+
+    // Sleep briefly to avoid busy-waiting (target ~60fps)
+    std.time.sleep(16_000_000); // ~16ms
 }
 
 /// Request application quit
 pub fn quit(self: *App) void {
     self.should_quit = true;
     PostQuitMessage(0);
+}
+
+/// Perform an action (called by surfaces or terminal)
+pub fn performAction(
+    self: *App,
+    target: apprt.Target,
+    action: apprt.Action,
+    value: anytype,
+) bool {
+    _ = value;
+
+    switch (action) {
+        .new_window => {
+            _ = self.createSurface(.{}) catch |err| {
+                log.err("Failed to create new window: {}", .{err});
+                return false;
+            };
+            return true;
+        },
+        .close_surface => {
+            switch (target) {
+                .focused => {
+                    // Close the focused surface
+                    if (self.core_app.focusedSurface()) |focused| {
+                        focused.close(false);
+                    }
+                },
+                .surface => |surface| {
+                    surface.close(false);
+                },
+            }
+            return true;
+        },
+        .quit => {
+            self.quit();
+            return true;
+        },
+        else => {
+            log.debug("Unhandled action: {}", .{action});
+            return false;
+        },
+    }
+}
+
+/// Wakeup the event loop (for cross-thread signaling)
+pub fn wakeup(self: *App) void {
+    _ = self;
+    // TODO: Use PostThreadMessage or similar to wake up the message loop
 }
 
 // =============================================================================
@@ -177,6 +231,16 @@ const WM_PAINT = 0x000F;
 const WM_KEYDOWN = 0x0100;
 const WM_KEYUP = 0x0101;
 const WM_CHAR = 0x0102;
+const WM_MOUSEMOVE = 0x0200;
+const WM_LBUTTONDOWN = 0x0201;
+const WM_LBUTTONUP = 0x0202;
+const WM_RBUTTONDOWN = 0x0204;
+const WM_RBUTTONUP = 0x0205;
+const WM_MBUTTONDOWN = 0x0207;
+const WM_MBUTTONUP = 0x0208;
+const WM_MOUSEWHEEL = 0x020A;
+const WM_SETFOCUS = 0x0007;
+const WM_KILLFOCUS = 0x0008;
 
 const CS_HREDRAW = 0x0002;
 const CS_VREDRAW = 0x0001;
@@ -231,26 +295,8 @@ extern "user32" fn DefWindowProcW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam:
 extern "user32" fn RegisterClassExW(lpWndClass: *const WNDCLASSEXW) callconv(.C) u16;
 extern "user32" fn UnregisterClassW(lpClassName: [*:0]const u16, hInstance: ?HINSTANCE) callconv(.C) BOOL;
 extern "user32" fn LoadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) callconv(.C) ?HCURSOR;
-extern "user32" fn CreateWindowExW(
-    dwExStyle: DWORD,
-    lpClassName: [*:0]const u16,
-    lpWindowName: [*:0]const u16,
-    dwStyle: DWORD,
-    X: i32,
-    Y: i32,
-    nWidth: i32,
-    nHeight: i32,
-    hWndParent: ?HWND,
-    hMenu: ?HMENU,
-    hInstance: ?HINSTANCE,
-    lpParam: ?*anyopaque,
-) callconv(.C) ?HWND;
 extern "user32" fn DestroyWindow(hWnd: HWND) callconv(.C) BOOL;
-extern "user32" fn ShowWindow(hWnd: HWND, nCmdShow: i32) callconv(.C) BOOL;
-extern "user32" fn UpdateWindow(hWnd: HWND) callconv(.C) BOOL;
 extern "kernel32" fn GetModuleHandleW(lpModuleName: ?[*:0]const u16) callconv(.C) ?HINSTANCE;
-
-const HMENU = std.os.windows.HANDLE;
 
 fn getModuleHandle() ?HINSTANCE {
     return GetModuleHandleW(null);
@@ -280,32 +326,162 @@ fn unregisterWindowClass(atom: u16, hinstance: HINSTANCE) void {
 
 /// Window procedure - handles all window messages
 fn windowProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) LRESULT {
+    // Get the surface from window user data
+    const surface = Surface.fromHwnd(hwnd);
+
     switch (msg) {
         WM_DESTROY => {
             PostQuitMessage(0);
             return 0;
         },
         WM_CLOSE => {
-            _ = DestroyWindow(hwnd);
+            if (surface) |s| {
+                s.close(false);
+            } else {
+                _ = DestroyWindow(hwnd);
+            }
+            return 0;
+        },
+        WM_SIZE => {
+            if (surface) |s| {
+                const width: u32 = @intCast(lparam & 0xFFFF);
+                const height: u32 = @intCast((lparam >> 16) & 0xFFFF);
+                s.handleResize(width, height) catch |err| {
+                    log.warn("Resize failed: {}", .{err});
+                };
+            }
             return 0;
         },
         WM_PAINT => {
-            // TODO: Trigger D3D11 render
+            if (surface) |s| {
+                s.render() catch |err| {
+                    log.warn("Render failed: {}", .{err});
+                };
+            }
             return DefWindowProcW(hwnd, msg, wparam, lparam);
         },
-        WM_SIZE => {
-            // TODO: Handle resize - update swap chain
+        WM_KEYDOWN => {
+            if (surface) |s| {
+                const mods = getModifiers();
+                s.handleKeyEvent(.press, @intCast(wparam), 0, mods) catch {};
+            }
             return 0;
         },
-        WM_KEYDOWN, WM_KEYUP, WM_CHAR => {
-            // TODO: Forward to terminal input handling
+        WM_KEYUP => {
+            if (surface) |s| {
+                const mods = getModifiers();
+                s.handleKeyEvent(.release, @intCast(wparam), 0, mods) catch {};
+            }
+            return 0;
+        },
+        WM_CHAR => {
+            if (surface) |s| {
+                // Convert UTF-16 codepoint to UTF-8
+                var buf: [4]u8 = undefined;
+                const codepoint: u21 = @intCast(wparam);
+                const len = std.unicode.utf8Encode(codepoint, &buf) catch 0;
+                if (len > 0) {
+                    s.handleTextInput(buf[0..len]);
+                }
+            }
+            return 0;
+        },
+        WM_MOUSEMOVE => {
+            if (surface) |s| {
+                const x: f64 = @floatFromInt(@as(i16, @truncate(lparam)));
+                const y: f64 = @floatFromInt(@as(i16, @truncate(lparam >> 16)));
+                const mods = getModifiers();
+                s.handleMouseMove(x, y, mods);
+            }
+            return 0;
+        },
+        WM_LBUTTONDOWN => {
+            if (surface) |s| {
+                const mods = getModifiers();
+                s.handleMouseButton(.press, .left, mods);
+            }
+            return 0;
+        },
+        WM_LBUTTONUP => {
+            if (surface) |s| {
+                const mods = getModifiers();
+                s.handleMouseButton(.release, .left, mods);
+            }
+            return 0;
+        },
+        WM_RBUTTONDOWN => {
+            if (surface) |s| {
+                const mods = getModifiers();
+                s.handleMouseButton(.press, .right, mods);
+            }
+            return 0;
+        },
+        WM_RBUTTONUP => {
+            if (surface) |s| {
+                const mods = getModifiers();
+                s.handleMouseButton(.release, .right, mods);
+            }
+            return 0;
+        },
+        WM_MBUTTONDOWN => {
+            if (surface) |s| {
+                const mods = getModifiers();
+                s.handleMouseButton(.press, .middle, mods);
+            }
+            return 0;
+        },
+        WM_MBUTTONUP => {
+            if (surface) |s| {
+                const mods = getModifiers();
+                s.handleMouseButton(.release, .middle, mods);
+            }
+            return 0;
+        },
+        WM_MOUSEWHEEL => {
+            if (surface) |s| {
+                const delta: i16 = @bitCast(@as(u16, @truncate(wparam >> 16)));
+                const scroll_y: f64 = @as(f64, @floatFromInt(delta)) / 120.0;
+                const mods = getModifiers();
+                s.handleScroll(0, scroll_y, mods);
+            }
+            return 0;
+        },
+        WM_SETFOCUS => {
+            if (surface) |s| {
+                s.handleFocus(true);
+            }
+            return 0;
+        },
+        WM_KILLFOCUS => {
+            if (surface) |s| {
+                s.handleFocus(false);
+            }
             return 0;
         },
         else => return DefWindowProcW(hwnd, msg, wparam, lparam),
     }
 }
 
+/// Get current modifier key state
+fn getModifiers() input.Mods {
+    var mods: input.Mods = .{};
+
+    if ((GetKeyState(VK_SHIFT) & 0x8000) != 0) mods.shift = true;
+    if ((GetKeyState(VK_CONTROL) & 0x8000) != 0) mods.ctrl = true;
+    if ((GetKeyState(VK_MENU) & 0x8000) != 0) mods.alt = true;
+    if ((GetKeyState(VK_LWIN) & 0x8000) != 0 or (GetKeyState(VK_RWIN) & 0x8000) != 0) mods.super = true;
+
+    return mods;
+}
+
+const VK_SHIFT = 0x10;
+const VK_CONTROL = 0x11;
+const VK_MENU = 0x12;
+const VK_LWIN = 0x5B;
+const VK_RWIN = 0x5C;
+
+extern "user32" fn GetKeyState(nVirtKey: i32) callconv(.C) i16;
+
 test {
-    // Basic compilation test
     _ = App;
 }

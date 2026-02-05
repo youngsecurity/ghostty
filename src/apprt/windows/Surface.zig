@@ -2,6 +2,7 @@
 //!
 //! A Surface represents a single terminal window on Windows. It manages
 //! the Win32 window handle, Direct3D11 swap chain, and terminal state.
+//! This integrates with Ghostty's CoreSurface for terminal emulation.
 //!
 const Surface = @This();
 
@@ -16,6 +17,7 @@ const input = @import("../../input.zig");
 const renderer = @import("../../renderer.zig");
 const terminalpkg = @import("../../terminal/main.zig");
 const CoreSurface = @import("../../Surface.zig");
+const CoreApp = @import("../../App.zig");
 
 const App = @import("App.zig");
 const windows = @import("../windows.zig");
@@ -26,7 +28,7 @@ const log = std.log.scoped(.windows_surface);
 app: *App,
 
 /// Win32 window handle
-hwnd: ?windows.HWND,
+hwnd: ?HWND,
 
 /// Direct3D11 device (created per surface for simplicity)
 d3d_device: ?*anyopaque,
@@ -40,78 +42,439 @@ swap_chain: ?*anyopaque,
 /// Render target view
 render_target: ?*anyopaque,
 
-/// Core Ghostty surface
-core_surface: ?*CoreSurface,
+/// Core Ghostty surface (terminal emulator)
+core_surface: CoreSurface,
 
-/// Surface dimensions
-width: u32,
-height: u32,
+/// Surface dimensions in pixels
+size: apprt.SurfaceSize,
 
 /// Content scale (DPI scaling)
-content_scale: f32,
+content_scale: apprt.ContentScale,
+
+/// Current cursor position
+cursor_pos: apprt.CursorPos,
+
+/// Current window title
+title: ?[:0]const u8,
+
+/// Surface initialization options
+pub const Options = struct {
+    /// The scale factor of the screen (DPI)
+    scale_factor: f64 = 1.0,
+
+    /// The font size to inherit (0 = use default)
+    font_size: f32 = 0,
+
+    /// Working directory to start in
+    working_directory: ?[:0]const u8 = null,
+
+    /// Context for the new surface (window/tab/split)
+    context: apprt.surface.NewSurfaceContext = .window,
+};
 
 /// Initialize a new surface
-pub fn init(app: *App) !Surface {
+pub fn init(self: *Surface, app: *App, opts: Options) !void {
     log.info("Creating YStty surface", .{});
 
-    // Create the Win32 window
-    const hwnd = createWindow(app) orelse return error.WindowCreationFailed;
-    errdefer _ = DestroyWindow(hwnd);
-
-    // Show the window
-    _ = ShowWindow(hwnd, SW_SHOW);
-    _ = UpdateWindow(hwnd);
-
-    // Get initial window size
-    var rect: RECT = undefined;
-    _ = GetClientRect(hwnd, &rect);
-    const width: u32 = @intCast(rect.right - rect.left);
-    const height: u32 = @intCast(rect.bottom - rect.top);
-
-    // Initialize Direct3D11
-    var surface = Surface{
+    // Initialize basic state
+    self.* = .{
         .app = app,
-        .hwnd = hwnd,
+        .hwnd = null,
         .d3d_device = null,
         .d3d_context = null,
         .swap_chain = null,
         .render_target = null,
-        .core_surface = null,
-        .width = width,
-        .height = height,
-        .content_scale = 1.0,
+        .core_surface = undefined,
+        .size = .{ .width = 1280, .height = 720 },
+        .content_scale = .{
+            .x = @floatCast(opts.scale_factor),
+            .y = @floatCast(opts.scale_factor),
+        },
+        .cursor_pos = .{ .x = -1, .y = -1 },
+        .title = null,
     };
 
-    try surface.initD3D11();
+    // Create the Win32 window
+    self.hwnd = createWindow(app, self) orelse return error.WindowCreationFailed;
+    errdefer {
+        if (self.hwnd) |hwnd| _ = DestroyWindow(hwnd);
+    }
 
-    log.info("YStty surface created: {}x{}", .{ width, height });
+    // Get initial window size
+    var rect: RECT = undefined;
+    if (GetClientRect(self.hwnd.?, &rect) != 0) {
+        self.size.width = @intCast(rect.right - rect.left);
+        self.size.height = @intCast(rect.bottom - rect.top);
+    }
 
-    return surface;
+    // Initialize Direct3D11
+    try self.initD3D11();
+    errdefer self.deinitD3D11();
+
+    // Add ourselves to the list of surfaces on the app
+    try app.core_app.addSurface(self);
+    errdefer app.core_app.deleteSurface(self);
+
+    // Create a configuration for this surface
+    var config = try apprt.surface.newConfig(app.core_app, app.config, opts.context);
+    defer config.deinit();
+
+    // Set working directory if provided
+    if (opts.working_directory) |wd| {
+        config.@"working-directory" = wd;
+    }
+
+    // Initialize the core surface (terminal emulator)
+    try self.core_surface.init(
+        app.core_app.alloc,
+        &config,
+        app.core_app,
+        app,
+        self,
+    );
+    errdefer self.core_surface.deinit();
+
+    // If font size was specified, set it
+    if (opts.font_size != 0) {
+        var font_size = self.core_surface.font_size;
+        font_size.points = opts.font_size;
+        try self.core_surface.setFontSize(font_size);
+    }
+
+    // Show the window
+    _ = ShowWindow(self.hwnd.?, SW_SHOW);
+    _ = UpdateWindow(self.hwnd.?);
+
+    log.info("YStty surface created: {}x{}", .{ self.size.width, self.size.height });
 }
 
 /// Deinitialize the surface
 pub fn deinit(self: *Surface) void {
     log.info("Destroying YStty surface", .{});
 
+    // Free the title if we have one
+    if (self.title) |t| {
+        self.app.core_app.alloc.free(t);
+        self.title = null;
+    }
+
+    // Remove ourselves from the app's surface list
+    self.app.core_app.deleteSurface(self);
+
+    // Deinitialize the core surface
+    self.core_surface.deinit();
+
+    // Cleanup D3D11
     self.deinitD3D11();
 
+    // Destroy the window
     if (self.hwnd) |hwnd| {
         _ = DestroyWindow(hwnd);
         self.hwnd = null;
     }
 }
 
-/// Initialize Direct3D11 resources
+// =============================================================================
+// CoreSurface Interface Methods
+// These are called by the core terminal emulator
+// =============================================================================
+
+/// Get the core surface
+pub fn core(self: *Surface) *CoreSurface {
+    return &self.core_surface;
+}
+
+/// Get the runtime app
+pub fn rtApp(self: *const Surface) *App {
+    return self.app;
+}
+
+/// Get the content scale (DPI scaling)
+pub fn getContentScale(self: *const Surface) !apprt.ContentScale {
+    return self.content_scale;
+}
+
+/// Get the surface size in pixels
+pub fn getSize(self: *const Surface) !apprt.SurfaceSize {
+    return self.size;
+}
+
+/// Get the current cursor position
+pub fn getCursorPos(self: *const Surface) !apprt.CursorPos {
+    return self.cursor_pos;
+}
+
+/// Get the current window title
+pub fn getTitle(self: *Surface) ?[:0]const u8 {
+    return self.title;
+}
+
+/// Check if a clipboard type is supported
+pub fn supportsClipboard(self: *const Surface, clipboard_type: apprt.Clipboard) bool {
+    _ = self;
+    return switch (clipboard_type) {
+        .standard => true,
+        .selection, .primary => false, // Windows doesn't have X11-style selection
+    };
+}
+
+/// Request clipboard contents
+pub fn clipboardRequest(
+    self: *Surface,
+    clipboard_type: apprt.Clipboard,
+    state: apprt.ClipboardRequest,
+) !bool {
+    _ = state;
+
+    if (!self.supportsClipboard(clipboard_type)) {
+        return false;
+    }
+
+    // TODO: Implement Windows clipboard reading
+    // - OpenClipboard(hwnd)
+    // - GetClipboardData(CF_UNICODETEXT)
+    // - CloseClipboard()
+    // - Call state.complete() with the data
+
+    return false;
+}
+
+/// Write to the clipboard
+pub fn setClipboardString(
+    self: *Surface,
+    val: apprt.ClipboardContent,
+    clipboard_type: apprt.Clipboard,
+    confirm: bool,
+) !void {
+    _ = val;
+    _ = confirm;
+
+    if (!self.supportsClipboard(clipboard_type)) {
+        return;
+    }
+
+    // TODO: Implement Windows clipboard writing
+    // - OpenClipboard(hwnd)
+    // - EmptyClipboard()
+    // - GlobalAlloc + copy data
+    // - SetClipboardData(CF_UNICODETEXT, hMem)
+    // - CloseClipboard()
+}
+
+/// Close the surface
+pub fn close(self: *const Surface, process_alive: bool) void {
+    _ = process_alive;
+
+    if (self.hwnd) |hwnd| {
+        _ = PostMessageW(hwnd, WM_CLOSE, 0, 0);
+    }
+}
+
+/// Perform an action requested by the terminal
+pub fn performAction(
+    self: *Surface,
+    target: apprt.Target,
+    action: apprt.Action,
+    value: anytype,
+) bool {
+    return self.app.performAction(target, action, value);
+}
+
+/// Get the default environment for terminal IO
+pub fn defaultTermioEnv(self: *const Surface) ?*const std.process.EnvMap {
+    _ = self;
+    return null;
+}
+
+/// Get the cgroup path (not applicable on Windows)
+pub fn cgroupPath(self: *const Surface) ?[]const u8 {
+    _ = self;
+    return null;
+}
+
+// =============================================================================
+// Input Handling
+// =============================================================================
+
+/// Handle a key event from Win32
+pub fn handleKeyEvent(
+    self: *Surface,
+    action: input.Action,
+    vk: u32,
+    scancode: u32,
+    mods: input.Mods,
+) !void {
+    // Convert Win32 virtual key to Ghostty physical key
+    const physical_key = mapVirtualKey(vk, scancode);
+
+    const event = input.KeyEvent{
+        .action = action,
+        .key = physical_key,
+        .mods = mods,
+        .consumed_mods = .{},
+        .composing = false,
+        .utf8 = "",
+        .unshifted_codepoint = 0,
+    };
+
+    _ = try self.core_surface.keyCallback(event);
+}
+
+/// Handle a mouse button event from Win32
+pub fn handleMouseButton(
+    self: *Surface,
+    action: input.MouseButtonAction,
+    button: input.MouseButton,
+    mods: input.Mods,
+) void {
+    _ = self.core_surface.mouseButtonCallback(action, button, mods);
+}
+
+/// Handle mouse movement from Win32
+pub fn handleMouseMove(self: *Surface, x: f64, y: f64, mods: input.Mods) void {
+    self.cursor_pos = .{ .x = x, .y = y };
+    self.core_surface.cursorPosCallback(self.cursor_pos, mods);
+}
+
+/// Handle mouse scroll from Win32
+pub fn handleScroll(self: *Surface, x: f64, y: f64, mods: input.Mods) void {
+    self.core_surface.scrollCallback(x, y, mods);
+}
+
+/// Handle focus change
+pub fn handleFocus(self: *Surface, focused: bool) void {
+    self.core_surface.focusCallback(focused);
+}
+
+/// Handle window resize
+pub fn handleResize(self: *Surface, width: u32, height: u32) !void {
+    if (width == 0 or height == 0) return;
+
+    log.info("Resizing surface: {}x{} -> {}x{}", .{
+        self.size.width,
+        self.size.height,
+        width,
+        height,
+    });
+
+    self.size.width = width;
+    self.size.height = height;
+
+    // Resize D3D11 swap chain
+    try self.resizeSwapChain(width, height);
+
+    // Notify the core surface
+    self.core_surface.sizeCallback(self.size);
+}
+
+/// Handle text input (for IME support)
+pub fn handleTextInput(self: *Surface, text: []const u8) void {
+    self.core_surface.textCallback(text);
+}
+
+// =============================================================================
+// Virtual Key Mapping
+// =============================================================================
+
+fn mapVirtualKey(vk: u32, scancode: u32) input.Key {
+    _ = scancode;
+
+    return switch (vk) {
+        // Letters
+        0x41 => .a,
+        0x42 => .b,
+        0x43 => .c,
+        0x44 => .d,
+        0x45 => .e,
+        0x46 => .f,
+        0x47 => .g,
+        0x48 => .h,
+        0x49 => .i,
+        0x4A => .j,
+        0x4B => .k,
+        0x4C => .l,
+        0x4D => .m,
+        0x4E => .n,
+        0x4F => .o,
+        0x50 => .p,
+        0x51 => .q,
+        0x52 => .r,
+        0x53 => .s,
+        0x54 => .t,
+        0x55 => .u,
+        0x56 => .v,
+        0x57 => .w,
+        0x58 => .x,
+        0x59 => .y,
+        0x5A => .z,
+
+        // Numbers
+        0x30 => .zero,
+        0x31 => .one,
+        0x32 => .two,
+        0x33 => .three,
+        0x34 => .four,
+        0x35 => .five,
+        0x36 => .six,
+        0x37 => .seven,
+        0x38 => .eight,
+        0x39 => .nine,
+
+        // Function keys
+        0x70 => .f1,
+        0x71 => .f2,
+        0x72 => .f3,
+        0x73 => .f4,
+        0x74 => .f5,
+        0x75 => .f6,
+        0x76 => .f7,
+        0x77 => .f8,
+        0x78 => .f9,
+        0x79 => .f10,
+        0x7A => .f11,
+        0x7B => .f12,
+
+        // Control keys
+        0x08 => .backspace,
+        0x09 => .tab,
+        0x0D => .enter,
+        0x1B => .escape,
+        0x20 => .space,
+        0x2E => .delete,
+        0x2D => .insert,
+        0x24 => .home,
+        0x23 => .end,
+        0x21 => .page_up,
+        0x22 => .page_down,
+
+        // Arrow keys
+        0x25 => .left,
+        0x26 => .up,
+        0x27 => .right,
+        0x28 => .down,
+
+        // Modifiers
+        0x10 => .left_shift,
+        0x11 => .left_control,
+        0x12 => .left_alt,
+
+        else => .unidentified,
+    };
+}
+
+// =============================================================================
+// Direct3D11 Management
+// =============================================================================
+
 fn initD3D11(self: *Surface) !void {
     const hwnd = self.hwnd orelse return error.NoWindow;
 
     log.info("Initializing Direct3D11 for surface", .{});
 
-    // Create device, context, and swap chain
     var swap_chain_desc = DXGI_SWAP_CHAIN_DESC{
         .BufferDesc = .{
-            .Width = self.width,
-            .Height = self.height,
+            .Width = self.size.width,
+            .Height = self.size.height,
             .RefreshRate = .{ .Numerator = 60, .Denominator = 1 },
             .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
             .ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
@@ -141,9 +504,9 @@ fn initD3D11(self: *Surface) !void {
     }
 
     const hr = D3D11CreateDeviceAndSwapChain(
-        null, // adapter
+        null,
         D3D_DRIVER_TYPE_HARDWARE,
-        null, // software
+        null,
         flags,
         &feature_levels,
         feature_levels.len,
@@ -151,7 +514,7 @@ fn initD3D11(self: *Surface) !void {
         &swap_chain_desc,
         &swap_chain,
         &device,
-        null, // feature level out
+        null,
         &context,
     );
 
@@ -164,18 +527,15 @@ fn initD3D11(self: *Surface) !void {
     self.d3d_context = context;
     self.swap_chain = swap_chain;
 
-    // Create render target view
     try self.createRenderTarget();
 
     log.info("Direct3D11 initialized successfully", .{});
 }
 
-/// Create render target view from swap chain back buffer
 fn createRenderTarget(self: *Surface) !void {
     const swap_chain: *IDXGISwapChain = @ptrCast(@alignCast(self.swap_chain orelse return error.NoSwapChain));
     const device: *ID3D11Device = @ptrCast(@alignCast(self.d3d_device orelse return error.NoDevice));
 
-    // Get back buffer
     var back_buffer: ?*ID3D11Texture2D = null;
     var hr = swap_chain.vtable.GetBuffer(swap_chain, 0, &IID_ID3D11Texture2D, @ptrCast(&back_buffer));
     if (hr < 0) {
@@ -183,7 +543,6 @@ fn createRenderTarget(self: *Surface) !void {
     }
     defer _ = back_buffer.?.vtable.Release(back_buffer.?);
 
-    // Create render target view
     var rtv: ?*ID3D11RenderTargetView = null;
     hr = device.vtable.CreateRenderTargetView(device, @ptrCast(back_buffer), null, &rtv);
     if (hr < 0) {
@@ -193,7 +552,6 @@ fn createRenderTarget(self: *Surface) !void {
     self.render_target = rtv;
 }
 
-/// Release render target view
 fn releaseRenderTarget(self: *Surface) void {
     if (self.render_target) |rt| {
         const rtv: *ID3D11RenderTargetView = @ptrCast(@alignCast(rt));
@@ -202,7 +560,21 @@ fn releaseRenderTarget(self: *Surface) void {
     }
 }
 
-/// Deinitialize Direct3D11 resources
+fn resizeSwapChain(self: *Surface, width: u32, height: u32) !void {
+    self.releaseRenderTarget();
+
+    if (self.swap_chain) |sc| {
+        const swap_chain: *IDXGISwapChain = @ptrCast(@alignCast(sc));
+        const hr = swap_chain.vtable.ResizeBuffers(swap_chain, 0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+        if (hr < 0) {
+            log.err("ResizeBuffers failed: 0x{x}", .{@as(u32, @bitCast(hr))});
+            return error.ResizeBuffersFailed;
+        }
+    }
+
+    try self.createRenderTarget();
+}
+
 fn deinitD3D11(self: *Surface) void {
     log.info("Deinitializing Direct3D11", .{});
 
@@ -227,46 +599,20 @@ fn deinitD3D11(self: *Surface) void {
     }
 }
 
-/// Handle window resize
-pub fn resize(self: *Surface, new_width: u32, new_height: u32) !void {
-    if (new_width == 0 or new_height == 0) return;
-
-    log.info("Resizing surface: {}x{} -> {}x{}", .{ self.width, self.height, new_width, new_height });
-
-    self.width = new_width;
-    self.height = new_height;
-
-    // Release old render target
-    self.releaseRenderTarget();
-
-    // Resize swap chain buffers
-    if (self.swap_chain) |sc| {
-        const swap_chain: *IDXGISwapChain = @ptrCast(@alignCast(sc));
-        const hr = swap_chain.vtable.ResizeBuffers(swap_chain, 0, new_width, new_height, DXGI_FORMAT_UNKNOWN, 0);
-        if (hr < 0) {
-            log.err("ResizeBuffers failed: 0x{x}", .{@as(u32, @bitCast(hr))});
-            return error.ResizeBuffersFailed;
-        }
-    }
-
-    // Recreate render target
-    try self.createRenderTarget();
-}
-
 /// Render a frame
 pub fn render(self: *Surface) !void {
     const context: *ID3D11DeviceContext = @ptrCast(@alignCast(self.d3d_context orelse return));
     const swap_chain: *IDXGISwapChain = @ptrCast(@alignCast(self.swap_chain orelse return));
     const rtv: *ID3D11RenderTargetView = @ptrCast(@alignCast(self.render_target orelse return));
 
-    // Clear to a dark background color (typical terminal background)
+    // Clear to a dark background color
     const clear_color = [4]f32{ 0.1, 0.1, 0.1, 1.0 };
     context.vtable.ClearRenderTargetView(context, rtv, &clear_color);
 
-    // TODO: Render terminal cells using the generic renderer
+    // TODO: Call core_surface.draw() to render terminal cells
 
     // Present
-    const hr = swap_chain.vtable.Present(swap_chain, 1, 0); // VSync enabled
+    const hr = swap_chain.vtable.Present(swap_chain, 1, 0);
     if (hr < 0) {
         log.warn("Present failed: 0x{x}", .{@as(u32, @bitCast(hr))});
     }
@@ -282,10 +628,12 @@ const UINT = u32;
 const DWORD = u32;
 const BOOL = i32;
 const HRESULT = i32;
+const WPARAM = usize;
+const LPARAM = isize;
 const GUID = extern struct { Data1: u32, Data2: u16, Data3: u16, Data4: [8]u8 };
-const REFIID = *const GUID;
 
 const SW_SHOW = 5;
+const WM_CLOSE = 0x0010;
 
 const RECT = extern struct {
     left: i32,
@@ -312,27 +660,45 @@ extern "user32" fn DestroyWindow(hWnd: HWND) callconv(.C) BOOL;
 extern "user32" fn ShowWindow(hWnd: HWND, nCmdShow: i32) callconv(.C) BOOL;
 extern "user32" fn UpdateWindow(hWnd: HWND) callconv(.C) BOOL;
 extern "user32" fn GetClientRect(hWnd: HWND, lpRect: *RECT) callconv(.C) BOOL;
+extern "user32" fn PostMessageW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) callconv(.C) BOOL;
+extern "user32" fn SetWindowLongPtrW(hWnd: HWND, nIndex: i32, dwNewLong: isize) callconv(.C) isize;
+extern "user32" fn GetWindowLongPtrW(hWnd: HWND, nIndex: i32) callconv(.C) isize;
 
 const HMENU = std.os.windows.HANDLE;
+const GWLP_USERDATA = -21;
 
 const WS_OVERLAPPEDWINDOW = 0x00CF0000;
 const CW_USEDEFAULT: i32 = @bitCast(@as(u32, 0x80000000));
 
-fn createWindow(app: *App) ?HWND {
-    return CreateWindowExW(
-        0, // dwExStyle
+fn createWindow(app: *App, surface: *Surface) ?HWND {
+    const hwnd = CreateWindowExW(
+        0,
         windows.WINDOW_CLASS_NAME,
         windows.APP_TITLE,
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
-        1280, // Initial width
-        720, // Initial height
-        null, // hWndParent
-        null, // hMenu
+        1280,
+        720,
+        null,
+        null,
         app.hinstance,
-        null, // lpParam
+        null,
     );
+
+    if (hwnd) |h| {
+        // Store the surface pointer in the window's user data
+        _ = SetWindowLongPtrW(h, GWLP_USERDATA, @bitCast(@intFromPtr(surface)));
+    }
+
+    return hwnd;
+}
+
+/// Get the Surface from a window handle
+pub fn fromHwnd(hwnd: HWND) ?*Surface {
+    const ptr = GetWindowLongPtrW(hwnd, GWLP_USERDATA);
+    if (ptr == 0) return null;
+    return @ptrFromInt(@as(usize, @bitCast(ptr)));
 }
 
 // =============================================================================
@@ -384,7 +750,6 @@ const DXGI_SWAP_CHAIN_DESC = extern struct {
     Flags: UINT,
 };
 
-// COM interface GUIDs
 const IID_ID3D11Texture2D = GUID{
     .Data1 = 0x6f15aaf2,
     .Data2 = 0xd208,
@@ -392,19 +757,10 @@ const IID_ID3D11Texture2D = GUID{
     .Data4 = .{ 0x9a, 0xb4, 0x48, 0x95, 0x35, 0xd3, 0x4f, 0x9c },
 };
 
-// COM interface vtables (simplified)
-const IUnknownVtbl = extern struct {
-    QueryInterface: *const fn (*anyopaque, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*anyopaque) callconv(.C) u32,
-    Release: *const fn (*anyopaque) callconv(.C) u32,
-};
-
 const ID3D11DeviceVtbl = extern struct {
-    // IUnknown
     QueryInterface: *const fn (*ID3D11Device, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
     AddRef: *const fn (*ID3D11Device) callconv(.C) u32,
     Release: *const fn (*ID3D11Device) callconv(.C) u32,
-    // ID3D11Device methods (partial - only what we need)
     CreateBuffer: *const anyopaque,
     CreateTexture1D: *const anyopaque,
     CreateTexture2D: *const anyopaque,
@@ -412,7 +768,6 @@ const ID3D11DeviceVtbl = extern struct {
     CreateShaderResourceView: *const anyopaque,
     CreateUnorderedAccessView: *const anyopaque,
     CreateRenderTargetView: *const fn (*ID3D11Device, *anyopaque, ?*anyopaque, *?*ID3D11RenderTargetView) callconv(.C) HRESULT,
-    // ... more methods
 };
 
 const ID3D11Device = extern struct {
@@ -420,16 +775,13 @@ const ID3D11Device = extern struct {
 };
 
 const ID3D11DeviceContextVtbl = extern struct {
-    // IUnknown
     QueryInterface: *const fn (*ID3D11DeviceContext, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
     AddRef: *const fn (*ID3D11DeviceContext) callconv(.C) u32,
     Release: *const fn (*ID3D11DeviceContext) callconv(.C) u32,
-    // ID3D11DeviceChild
     GetDevice: *const anyopaque,
     GetPrivateData: *const anyopaque,
     SetPrivateData: *const anyopaque,
     SetPrivateDataInterface: *const anyopaque,
-    // ID3D11DeviceContext methods (partial)
     VSSetConstantBuffers: *const anyopaque,
     PSSetShaderResources: *const anyopaque,
     PSSetShader: *const anyopaque,
@@ -474,7 +826,6 @@ const ID3D11DeviceContextVtbl = extern struct {
     UpdateSubresource: *const anyopaque,
     CopyStructureCount: *const anyopaque,
     ClearRenderTargetView: *const fn (*ID3D11DeviceContext, *ID3D11RenderTargetView, *const [4]f32) callconv(.C) void,
-    // ... more methods
 };
 
 const ID3D11DeviceContext = extern struct {
@@ -485,7 +836,6 @@ const ID3D11RenderTargetViewVtbl = extern struct {
     QueryInterface: *const fn (*ID3D11RenderTargetView, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
     AddRef: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
     Release: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
-    // ... more methods
 };
 
 const ID3D11RenderTargetView = extern struct {
@@ -496,7 +846,6 @@ const ID3D11Texture2DVtbl = extern struct {
     QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
     AddRef: *const fn (*ID3D11Texture2D) callconv(.C) u32,
     Release: *const fn (*ID3D11Texture2D) callconv(.C) u32,
-    // ... more methods
 };
 
 const ID3D11Texture2D = extern struct {
@@ -504,25 +853,20 @@ const ID3D11Texture2D = extern struct {
 };
 
 const IDXGISwapChainVtbl = extern struct {
-    // IUnknown
     QueryInterface: *const fn (*IDXGISwapChain, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
     AddRef: *const fn (*IDXGISwapChain) callconv(.C) u32,
     Release: *const fn (*IDXGISwapChain) callconv(.C) u32,
-    // IDXGIObject
     SetPrivateData: *const anyopaque,
     SetPrivateDataInterface: *const anyopaque,
     GetPrivateData: *const anyopaque,
     GetParent: *const anyopaque,
-    // IDXGIDeviceSubObject
     GetDevice: *const anyopaque,
-    // IDXGISwapChain
     Present: *const fn (*IDXGISwapChain, UINT, UINT) callconv(.C) HRESULT,
     GetBuffer: *const fn (*IDXGISwapChain, UINT, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
     SetFullscreenState: *const anyopaque,
     GetFullscreenState: *const anyopaque,
     GetDesc: *const anyopaque,
     ResizeBuffers: *const fn (*IDXGISwapChain, UINT, UINT, UINT, UINT, UINT) callconv(.C) HRESULT,
-    // ... more methods
 };
 
 const IDXGISwapChain = extern struct {
