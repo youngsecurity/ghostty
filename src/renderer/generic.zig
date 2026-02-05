@@ -507,14 +507,14 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                     @intCast(height),
                     null,
                 );
-                errdefer front_texture.deinit();
+                errdefer @constCast(&front_texture).deinit();
                 const back_texture = try Texture.init(
                     api.textureOptions(),
                     @intCast(width),
                     @intCast(height),
                     null,
                 );
-                errdefer back_texture.deinit();
+                errdefer @constCast(&back_texture).deinit();
 
                 self.front_texture.deinit();
                 self.back_texture.deinit();
