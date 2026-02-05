@@ -23,7 +23,14 @@ pub fn main() !void {
     try genConfig(alloc, writer);
     try genActions(alloc, writer);
     try genKeybindActions(alloc, writer);
-    try stdout.end();
+
+    // On Windows, stdout is a console handle which doesn't support ftruncate.
+    // The build system captures stdout to a file, so the data is already written.
+    // We just need to flush, not truncate.
+    stdout.end() catch |err| switch (err) {
+        error.FileTooBig => {}, // Windows console handle doesn't support truncate
+        else => return err,
+    };
 }
 
 fn genConfig(alloc: std.mem.Allocator, writer: *std.Io.Writer) !void {
