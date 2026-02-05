@@ -542,6 +542,7 @@ pub fn add(
         switch (self.config.app_runtime) {
             .none => {},
             .gtk => try self.addGtkNg(step),
+            .windows => {}, // Windows runtime uses Win32/D3D11, no additional deps needed here
         }
     }
 
