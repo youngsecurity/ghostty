@@ -21,6 +21,7 @@ const CoreApp = @import("../../App.zig");
 
 const App = @import("App.zig");
 const windows = @import("../windows.zig");
+const internal_os = @import("../../os/main.zig");
 
 const log = std.log.scoped(.windows_surface);
 
@@ -240,13 +241,13 @@ pub fn clipboardRequest(
 }
 
 /// Write to the clipboard
-pub fn setClipboardString(
-    self: *Surface,
-    val: apprt.ClipboardContent,
+pub fn setClipboard(
+    self: *const Surface,
     clipboard_type: apprt.Clipboard,
+    contents: []const apprt.ClipboardContent,
     confirm: bool,
 ) !void {
-    _ = val;
+    _ = contents;
     _ = confirm;
 
     if (!self.supportsClipboard(clipboard_type)) {
@@ -281,9 +282,9 @@ pub fn performAction(
 }
 
 /// Get the default environment for terminal IO
-pub fn defaultTermioEnv(self: *const Surface) ?*const std.process.EnvMap {
-    _ = self;
-    return null;
+pub fn defaultTermioEnv(self: *const Surface) !std.process.EnvMap {
+    const alloc = self.app.core_app.alloc;
+    return try internal_os.getEnvMap(alloc);
 }
 
 /// Get the cgroup path (not applicable on Windows)
