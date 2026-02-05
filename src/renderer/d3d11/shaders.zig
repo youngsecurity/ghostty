@@ -30,6 +30,9 @@ pub const Shaders = struct {
     /// Custom shaders (shadertoy-style)
     custom_shaders: []CompiledShader,
 
+    /// Whether the shaders are defunct and need to be recreated
+    defunct: bool = false,
+
     pub fn init(alloc: Allocator, custom_shader_sources: []const [:0]const u8) !Shaders {
         var custom_shaders = try alloc.alloc(CompiledShader, custom_shader_sources.len);
         errdefer alloc.free(custom_shaders);

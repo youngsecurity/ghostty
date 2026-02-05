@@ -165,7 +165,7 @@ fn tick(self: *App) !void {
     }
 
     // Sleep briefly to avoid busy-waiting (target ~60fps)
-    std.time.sleep(16_000_000); // ~16ms
+    std.Thread.sleep(16_000_000); // ~16ms
 }
 
 /// Request application quit
@@ -411,7 +411,9 @@ fn windowProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.c
                 const codepoint: u21 = @intCast(wparam);
                 const len = std.unicode.utf8Encode(codepoint, &buf) catch 0;
                 if (len > 0) {
-                    s.handleTextInput(buf[0..len]);
+                    s.handleTextInput(buf[0..len]) catch |err| {
+                        log.warn("Text input failed: {}", .{err});
+                    };
                 }
             }
             return 0;

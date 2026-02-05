@@ -324,7 +324,7 @@ pub fn handleKeyEvent(
 /// Handle a mouse button event from Win32
 pub fn handleMouseButton(
     self: *Surface,
-    action: input.MouseButtonAction,
+    action: input.MouseButtonState,
     button: input.MouseButton,
     mods: input.Mods,
 ) void {
@@ -333,7 +333,7 @@ pub fn handleMouseButton(
 
 /// Handle mouse movement from Win32
 pub fn handleMouseMove(self: *Surface, x: f64, y: f64, mods: input.Mods) void {
-    self.cursor_pos = .{ .x = x, .y = y };
+    self.cursor_pos = .{ .x = @floatCast(x), .y = @floatCast(y) };
     self.core_surface.cursorPosCallback(self.cursor_pos, mods);
 }
 
@@ -369,8 +369,8 @@ pub fn handleResize(self: *Surface, width: u32, height: u32) !void {
 }
 
 /// Handle text input (for IME support)
-pub fn handleTextInput(self: *Surface, text: []const u8) void {
-    self.core_surface.textCallback(text);
+pub fn handleTextInput(self: *Surface, text: []const u8) !void {
+    try self.core_surface.textCallback(text);
 }
 
 // =============================================================================
