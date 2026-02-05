@@ -368,13 +368,13 @@ pub fn Renderer(comptime GraphicsAPI: type) type {
                     .size = 1,
                     .format = .grayscale,
                 });
-                errdefer grayscale.deinit();
+                errdefer @constCast(&grayscale).deinit();
                 const color = try api.initAtlasTexture(&.{
                     .data = undefined,
                     .size = 1,
                     .format = .bgra,
                 });
-                errdefer color.deinit();
+                errdefer @constCast(&color).deinit();
 
                 var custom_shader_state =
                     if (custom_shaders)

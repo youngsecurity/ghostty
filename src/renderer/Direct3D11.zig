@@ -49,11 +49,11 @@ alloc: std.mem.Allocator,
 /// Alpha blending mode
 blending: configpkg.Config.AlphaBlending,
 
-/// D3D11 device
-device: ?*bufferpkg.ID3D11Device,
+/// D3D11 device (stored as anyopaque to avoid type conflicts between modules)
+device: ?*anyopaque,
 
-/// D3D11 immediate context
-context: ?*bufferpkg.ID3D11DeviceContext,
+/// D3D11 immediate context (stored as anyopaque to avoid type conflicts between modules)
+context: ?*anyopaque,
 
 /// DXGI swap chain for presenting
 swap_chain: ?*IDXGISwapChain,
@@ -70,17 +70,10 @@ pub fn init(alloc: Allocator, opts: rendererpkg.Options) error{D3D11InitFailed}!
     // Get D3D11 objects from the surface
     const surface = opts.rt_surface;
 
-    // The surface stores D3D11 objects as anyopaque, we just keep them as-is
-    // and cast when needed in methods
-    const device: ?*bufferpkg.ID3D11Device = if (surface.d3d_device) |d|
-        @ptrCast(@alignCast(d))
-    else
-        null;
-
-    const context: ?*bufferpkg.ID3D11DeviceContext = if (surface.d3d_context) |c|
-        @ptrCast(@alignCast(c))
-    else
-        null;
+    // The surface stores D3D11 objects as anyopaque, we keep them as-is
+    // and cast to the appropriate typed interface when needed
+    const device: ?*anyopaque = surface.d3d_device;
+    const context: ?*anyopaque = surface.d3d_context;
 
     const swap_chain: ?*IDXGISwapChain = if (surface.swap_chain) |s|
         @ptrCast(@alignCast(s))
@@ -242,8 +235,8 @@ pub fn presentLastTarget(self: *Direct3D11) !void {
 /// Returns the options to use when constructing buffers.
 pub inline fn bufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -253,8 +246,8 @@ pub inline fn bufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing instance buffers.
 pub inline fn instanceBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -264,8 +257,8 @@ pub inline fn instanceBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing uniform/constant buffers.
 pub inline fn uniformBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .constant_buffer = true },
@@ -275,8 +268,8 @@ pub inline fn uniformBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing foreground cell buffers.
 pub inline fn fgBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -286,8 +279,8 @@ pub inline fn fgBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing background cell buffers.
 pub inline fn bgBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -297,8 +290,8 @@ pub inline fn bgBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing image buffers.
 pub inline fn imageBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -308,8 +301,8 @@ pub inline fn imageBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing background image buffers.
 pub inline fn bgImageBufferOptions(self: Direct3D11) bufferpkg.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .usage = .dynamic,
         .cpu_access = .write,
         .bind_flags = .{ .vertex_buffer = true },
@@ -319,8 +312,8 @@ pub inline fn bgImageBufferOptions(self: Direct3D11) bufferpkg.Options {
 /// Returns the options to use when constructing textures.
 pub inline fn textureOptions(self: Direct3D11) Texture.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .format = DXGI_FORMAT_R8G8B8A8_UNORM,
         .usage = .default,
         .bind_flags = .{ .shader_resource = true },
@@ -365,8 +358,8 @@ pub inline fn imageTextureOptions(
     srgb: bool,
 ) Texture.Options {
     return .{
-        .device = self.device,
-        .context = self.context,
+        .device = @ptrCast(self.device),
+        .context = @ptrCast(self.context),
         .format = format.toDXGIFormat(srgb),
         .usage = .default,
         .bind_flags = .{ .shader_resource = true },
