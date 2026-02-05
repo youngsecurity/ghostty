@@ -232,7 +232,7 @@ const LRESULT = isize;
 const UINT = u32;
 const DWORD = u32;
 const BOOL = i32;
-const WNDPROC = *const fn (HWND, UINT, WPARAM, LPARAM) callconv(.C) LRESULT;
+const WNDPROC = *const fn (HWND, UINT, WPARAM, LPARAM) callconv(.c) LRESULT;
 
 const PM_REMOVE = 0x0001;
 const WM_QUIT = 0x0012;
@@ -298,17 +298,17 @@ const HICON = std.os.windows.HANDLE;
 const HCURSOR = std.os.windows.HANDLE;
 const HBRUSH = std.os.windows.HANDLE;
 
-extern "user32" fn GetMessageW(lpMsg: *MSG, hWnd: ?HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT) callconv(.C) BOOL;
-extern "user32" fn PeekMessageW(lpMsg: *MSG, hWnd: ?HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT) callconv(.C) BOOL;
-extern "user32" fn TranslateMessage(lpMsg: *const MSG) callconv(.C) BOOL;
-extern "user32" fn DispatchMessageW(lpMsg: *const MSG) callconv(.C) LRESULT;
-extern "user32" fn PostQuitMessage(nExitCode: i32) callconv(.C) void;
-extern "user32" fn DefWindowProcW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) callconv(.C) LRESULT;
-extern "user32" fn RegisterClassExW(lpWndClass: *const WNDCLASSEXW) callconv(.C) u16;
-extern "user32" fn UnregisterClassW(lpClassName: [*:0]const u16, hInstance: ?HINSTANCE) callconv(.C) BOOL;
-extern "user32" fn LoadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) callconv(.C) ?HCURSOR;
-extern "user32" fn DestroyWindow(hWnd: HWND) callconv(.C) BOOL;
-extern "kernel32" fn GetModuleHandleW(lpModuleName: ?[*:0]const u16) callconv(.C) ?HINSTANCE;
+extern "user32" fn GetMessageW(lpMsg: *MSG, hWnd: ?HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT) callconv(.c) BOOL;
+extern "user32" fn PeekMessageW(lpMsg: *MSG, hWnd: ?HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT) callconv(.c) BOOL;
+extern "user32" fn TranslateMessage(lpMsg: *const MSG) callconv(.c) BOOL;
+extern "user32" fn DispatchMessageW(lpMsg: *const MSG) callconv(.c) LRESULT;
+extern "user32" fn PostQuitMessage(nExitCode: i32) callconv(.c) void;
+extern "user32" fn DefWindowProcW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) callconv(.c) LRESULT;
+extern "user32" fn RegisterClassExW(lpWndClass: *const WNDCLASSEXW) callconv(.c) u16;
+extern "user32" fn UnregisterClassW(lpClassName: [*:0]const u16, hInstance: ?HINSTANCE) callconv(.c) BOOL;
+extern "user32" fn LoadCursorW(hInstance: ?HINSTANCE, lpCursorName: [*:0]const u16) callconv(.c) ?HCURSOR;
+extern "user32" fn DestroyWindow(hWnd: HWND) callconv(.c) BOOL;
+extern "kernel32" fn GetModuleHandleW(lpModuleName: ?[*:0]const u16) callconv(.c) ?HINSTANCE;
 
 fn getModuleHandle() ?HINSTANCE {
     return GetModuleHandleW(null);
@@ -337,7 +337,7 @@ fn unregisterWindowClass(atom: u16, hinstance: HINSTANCE) void {
 }
 
 /// Window procedure - handles all window messages
-fn windowProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.C) LRESULT {
+fn windowProc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) callconv(.c) LRESULT {
     // Get the surface from window user data
     const surface = Surface.fromHwnd(hwnd);
 
@@ -492,7 +492,7 @@ const VK_MENU = 0x12;
 const VK_LWIN = 0x5B;
 const VK_RWIN = 0x5C;
 
-extern "user32" fn GetKeyState(nVirtKey: i32) callconv(.C) i16;
+extern "user32" fn GetKeyState(nVirtKey: i32) callconv(.c) i16;
 
 test {
     _ = App;
