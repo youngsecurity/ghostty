@@ -12,61 +12,149 @@ const math = @import("../../math.zig");
 
 const log = std.log.scoped(.d3d11_shaders);
 
+const Pipeline = @import("Pipeline.zig");
+
+/// Pipeline collection for all render passes
+pub const PipelineCollection = struct {
+    bg_color: Pipeline,
+    bg_image: Pipeline,
+    cell_bg: Pipeline,
+    cell_text: Pipeline,
+    image: Pipeline,
+};
+
 pub const Shaders = struct {
     alloc: Allocator,
 
-    /// Cell rendering shaders (text/glyphs)
-    cell_vs: ?CompiledShader,
-    cell_ps: ?CompiledShader,
+    /// Collection of available render pipelines.
+    pipelines: PipelineCollection,
 
-    /// Background rendering shaders
-    bg_vs: ?CompiledShader,
-    bg_ps: ?CompiledShader,
-
-    /// Image rendering shaders
-    image_vs: ?CompiledShader,
-    image_ps: ?CompiledShader,
-
-    /// Custom shaders (shadertoy-style)
-    custom_shaders: []CompiledShader,
+    /// Post-processing pipelines (custom shaders)
+    post_pipelines: []const Pipeline,
 
     /// Whether the shaders are defunct and need to be recreated
     defunct: bool = false,
 
-    pub fn init(alloc: Allocator, custom_shader_sources: []const [:0]const u8) !Shaders {
-        var custom_shaders = try alloc.alloc(CompiledShader, custom_shader_sources.len);
-        errdefer alloc.free(custom_shaders);
+    pub fn init(alloc: Allocator, device: ?*Pipeline.ID3D11Device, custom_shader_sources: []const [:0]const u8) !Shaders {
+        // Compile shaders
+        var cell_vs = try compileShader(alloc, cell_vertex_shader, .vertex);
+        errdefer cell_vs.deinit();
+        var cell_ps = try compileShader(alloc, cell_pixel_shader, .pixel);
+        errdefer cell_ps.deinit();
+        var bg_vs = try compileShader(alloc, bg_vertex_shader, .vertex);
+        errdefer bg_vs.deinit();
+        var bg_ps = try compileShader(alloc, bg_pixel_shader, .pixel);
+        errdefer bg_ps.deinit();
+        var image_vs = try compileShader(alloc, image_vertex_shader, .vertex);
+        errdefer image_vs.deinit();
+        var image_ps = try compileShader(alloc, image_pixel_shader, .pixel);
+        errdefer image_ps.deinit();
 
-        for (custom_shader_sources, 0..) |source, i| {
-            custom_shaders[i] = try compileShader(alloc, source, .pixel);
+        // Create pipelines
+        var pipelines: PipelineCollection = undefined;
+        var initialized: usize = 0;
+
+        errdefer {
+            if (initialized > 0) pipelines.bg_color.deinit();
+            if (initialized > 1) pipelines.bg_image.deinit();
+            if (initialized > 2) pipelines.cell_bg.deinit();
+            if (initialized > 3) pipelines.cell_text.deinit();
+            if (initialized > 4) pipelines.image.deinit();
         }
+
+        pipelines.bg_color = try Pipeline.init(.{
+            .device = device,
+            .vertex_shader_bytecode = bg_vs.getBytecode(),
+            .pixel_shader_bytecode = bg_ps.getBytecode(),
+            .blend_enabled = false,
+        });
+        initialized += 1;
+
+        pipelines.bg_image = try Pipeline.init(.{
+            .device = device,
+            .vertex_shader_bytecode = image_vs.getBytecode(),
+            .pixel_shader_bytecode = image_ps.getBytecode(),
+            .blend_enabled = true,
+        });
+        initialized += 1;
+
+        pipelines.cell_bg = try Pipeline.init(.{
+            .device = device,
+            .vertex_shader_bytecode = bg_vs.getBytecode(),
+            .pixel_shader_bytecode = bg_ps.getBytecode(),
+            .blend_enabled = false,
+        });
+        initialized += 1;
+
+        pipelines.cell_text = try Pipeline.init(.{
+            .device = device,
+            .vertex_shader_bytecode = cell_vs.getBytecode(),
+            .pixel_shader_bytecode = cell_ps.getBytecode(),
+            .blend_enabled = true,
+        });
+        initialized += 1;
+
+        pipelines.image = try Pipeline.init(.{
+            .device = device,
+            .vertex_shader_bytecode = image_vs.getBytecode(),
+            .pixel_shader_bytecode = image_ps.getBytecode(),
+            .blend_enabled = true,
+        });
+        initialized += 1;
+
+        // Create post-processing pipelines
+        var post_pipelines = try alloc.alloc(Pipeline, custom_shader_sources.len);
+        errdefer alloc.free(post_pipelines);
+
+        var i: usize = 0;
+        errdefer {
+            for (post_pipelines[0..i]) |*p| p.deinit();
+        }
+
+        for (custom_shader_sources) |source| {
+            var custom_ps = try compileShader(alloc, source, .pixel);
+            defer custom_ps.deinit();
+            post_pipelines[i] = try Pipeline.init(.{
+                .device = device,
+                .vertex_shader_bytecode = bg_vs.getBytecode(),
+                .pixel_shader_bytecode = custom_ps.getBytecode(),
+                .blend_enabled = true,
+            });
+            i += 1;
+        }
+
+        // Free compiled shaders - bytecode has been consumed
+        cell_vs.deinit();
+        cell_ps.deinit();
+        bg_vs.deinit();
+        bg_ps.deinit();
+        image_vs.deinit();
+        image_ps.deinit();
 
         return Shaders{
             .alloc = alloc,
-            .cell_vs = try compileShader(alloc, cell_vertex_shader, .vertex),
-            .cell_ps = try compileShader(alloc, cell_pixel_shader, .pixel),
-            .bg_vs = try compileShader(alloc, bg_vertex_shader, .vertex),
-            .bg_ps = try compileShader(alloc, bg_pixel_shader, .pixel),
-            .image_vs = try compileShader(alloc, image_vertex_shader, .vertex),
-            .image_ps = try compileShader(alloc, image_pixel_shader, .pixel),
-            .custom_shaders = custom_shaders,
+            .pipelines = pipelines,
+            .post_pipelines = post_pipelines,
         };
     }
 
-    pub fn deinit(self: *Shaders, _: Allocator) void {
-        if (self.cell_vs) |*s| s.deinit();
-        if (self.cell_ps) |*s| s.deinit();
-        if (self.bg_vs) |*s| s.deinit();
-        if (self.bg_ps) |*s| s.deinit();
-        if (self.image_vs) |*s| s.deinit();
-        if (self.image_ps) |*s| s.deinit();
+    pub fn deinit(self: *Shaders, alloc: Allocator) void {
+        if (self.defunct) return;
+        self.defunct = true;
 
-        for (self.custom_shaders) |*s| {
-            s.deinit();
+        // Release pipelines
+        var pipelines = self.pipelines;
+        pipelines.bg_color.deinit();
+        pipelines.bg_image.deinit();
+        pipelines.cell_bg.deinit();
+        pipelines.cell_text.deinit();
+        pipelines.image.deinit();
+
+        // Release post pipelines
+        for (self.post_pipelines) |*p| {
+            @constCast(p).deinit();
         }
-        self.alloc.free(self.custom_shaders);
-
-        self.* = undefined;
+        alloc.free(self.post_pipelines);
     }
 };
 

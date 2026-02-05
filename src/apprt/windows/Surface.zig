@@ -328,23 +328,36 @@ pub fn handleMouseButton(
     button: input.MouseButton,
     mods: input.Mods,
 ) void {
-    _ = self.core_surface.mouseButtonCallback(action, button, mods);
+    _ = self.core_surface.mouseButtonCallback(action, button, mods) catch |err| {
+        log.warn("Mouse button callback failed: {}", .{err});
+    };
 }
 
 /// Handle mouse movement from Win32
 pub fn handleMouseMove(self: *Surface, x: f64, y: f64, mods: input.Mods) void {
     self.cursor_pos = .{ .x = @floatCast(x), .y = @floatCast(y) };
-    self.core_surface.cursorPosCallback(self.cursor_pos, mods);
+    self.core_surface.cursorPosCallback(self.cursor_pos, mods) catch |err| {
+        log.warn("Cursor pos callback failed: {}", .{err});
+    };
 }
 
 /// Handle mouse scroll from Win32
 pub fn handleScroll(self: *Surface, x: f64, y: f64, mods: input.Mods) void {
-    self.core_surface.scrollCallback(x, y, mods);
+    // Convert Mods to ScrollMods
+    const scroll_mods: input.ScrollMods = .{
+        .shift = mods.shift,
+        .ctrl = mods.ctrl,
+        .alt = mods.alt,
+        .precision = false,
+    };
+    self.core_surface.scrollCallback(x, y, scroll_mods);
 }
 
 /// Handle focus change
 pub fn handleFocus(self: *Surface, focused: bool) void {
-    self.core_surface.focusCallback(focused);
+    self.core_surface.focusCallback(focused) catch |err| {
+        log.warn("Focus callback failed: {}", .{err});
+    };
 }
 
 /// Handle window resize

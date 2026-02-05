@@ -93,7 +93,8 @@ pub fn begin(opts: Options) RenderPass {
             switch (at.target) {
                 .target => |t| {
                     if (opts.renderer.api.context) |ctx| {
-                        t.clear(ctx, color);
+                        const context: *Target.ID3D11DeviceContext = @ptrCast(@alignCast(ctx));
+                        t.clear(context, color);
                     }
                 },
                 .texture => {

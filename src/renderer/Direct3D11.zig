@@ -171,6 +171,7 @@ pub fn initShaders(
     _ = alloc;
     return try shaders.Shaders.init(
         self.alloc,
+        @ptrCast(@alignCast(self.device)),
         custom_shaders,
     );
 }
