@@ -364,7 +364,7 @@ pub fn handleResize(self: *Surface, width: u32, height: u32) !void {
     try self.resizeSwapChain(width, height);
 
     // Notify the core surface
-    self.core_surface.sizeCallback(self.size);
+    try self.core_surface.sizeCallback(self.size);
 }
 
 /// Handle text input (for IME support)
@@ -886,7 +886,7 @@ extern "d3d11" fn D3D11CreateDeviceAndSwapChain(
     ppDevice: *?*ID3D11Device,
     pFeatureLevel: ?*D3D_FEATURE_LEVEL,
     ppImmediateContext: *?*ID3D11DeviceContext,
-) callconv(.C) HRESULT;
+) callconv(.c) HRESULT;
 
 test {
     _ = Surface;
