@@ -155,7 +155,7 @@ pub fn removeSurface(self: *App, surface: *Surface) void {
 /// Tick the application (process pending work)
 fn tick(self: *App) !void {
     // Process any pending core app work
-    self.core_app.tick(self);
+    try self.core_app.tick(self);
 
     // Render all surfaces
     for (self.surfaces.items) |surface| {
@@ -195,11 +195,11 @@ pub fn performAction(
                 .app => {
                     // Close the focused window
                     if (self.core_app.focusedSurface()) |focused| {
-                        focused.close(false);
+                        focused.close();
                     }
                 },
                 .surface => |surface| {
-                    surface.close(false);
+                    surface.close();
                 },
             }
             return true;

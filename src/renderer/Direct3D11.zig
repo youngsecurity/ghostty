@@ -197,10 +197,13 @@ pub fn initTarget(self: *const Direct3D11, width: usize, height: usize) !Target 
 
 /// Present the provided target.
 pub fn present(self: *Direct3D11, target: Target) !void {
-    const context = self.context orelse return error.NoContext;
+    const context_ptr = self.context orelse return error.NoContext;
     const swap_chain = self.swap_chain orelse return error.NoSwapChain;
     // back_buffer_rtv kept for potential future use (clearing, etc.)
     _ = self.back_buffer_rtv orelse return error.NoBackBuffer;
+
+    // Cast context from anyopaque to proper type
+    const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
 
     // Copy the target texture to the back buffer
     // First, we need to get the back buffer texture from the RTV
