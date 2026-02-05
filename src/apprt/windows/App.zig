@@ -208,6 +208,16 @@ pub fn wakeup(self: *App) void {
     // TODO: Use PostThreadMessage or similar to wake up the message loop
 }
 
+/// Perform IPC action. Windows doesn't support IPC yet.
+pub fn performIpc(
+    _: Allocator,
+    _: apprt.ipc.Target,
+    comptime action: apprt.ipc.Action.Key,
+    _: apprt.ipc.Action.Value(action),
+) !bool {
+    return false;
+}
+
 // =============================================================================
 // Win32 Bindings
 // =============================================================================
