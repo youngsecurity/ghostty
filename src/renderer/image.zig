@@ -771,7 +771,7 @@ pub const Image = union(enum) {
 
             .replace, .unload_replace => |r| {
                 alloc.free(r.pending.dataSlice());
-                r.texture.deinit();
+                @constCast(&r.texture).deinit();
             },
 
             .ready,

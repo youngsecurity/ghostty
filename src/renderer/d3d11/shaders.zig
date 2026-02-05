@@ -50,7 +50,7 @@ pub const Shaders = struct {
         };
     }
 
-    pub fn deinit(self: *Shaders) void {
+    pub fn deinit(self: *Shaders, _: Allocator) void {
         if (self.cell_vs) |*s| s.deinit();
         if (self.cell_ps) |*s| s.deinit();
         if (self.bg_vs) |*s| s.deinit();

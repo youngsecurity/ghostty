@@ -166,11 +166,9 @@ pub fn quit(self: *App) void {
 pub fn performAction(
     self: *App,
     target: apprt.Target,
-    action: apprt.Action,
-    value: anytype,
-) bool {
-    _ = value;
-
+    comptime action: apprt.Action.Key,
+    value: apprt.Action.Value(action),
+) !bool {
     switch (action) {
         .new_window => {
             _ = self.createSurface(.{}) catch |err| {
@@ -180,6 +178,7 @@ pub fn performAction(
             return true;
         },
         .close_surface => {
+            _ = value;
             switch (target) {
                 .focused => {
                     // Close the focused surface
@@ -194,11 +193,18 @@ pub fn performAction(
             return true;
         },
         .quit => {
+            _ = value;
             self.quit();
             return true;
         },
+        .quit_timer => {
+            _ = value;
+            // Windows doesn't implement quit timer yet, just ignore
+            return false;
+        },
         else => {
-            log.debug("Unhandled action: {}", .{action});
+            _ = value;
+            log.debug("Unhandled action: {s}", .{@tagName(action)});
             return false;
         },
     }

@@ -274,9 +274,9 @@ pub fn close(self: *const Surface, process_alive: bool) void {
 pub fn performAction(
     self: *Surface,
     target: apprt.Target,
-    action: apprt.Action,
-    value: anytype,
-) bool {
+    comptime action: apprt.Action.Key,
+    value: apprt.Action.Value(action),
+) !bool {
     return self.app.performAction(target, action, value);
 }
 
@@ -655,14 +655,14 @@ extern "user32" fn CreateWindowExW(
     hMenu: ?HMENU,
     hInstance: ?HINSTANCE,
     lpParam: ?*anyopaque,
-) callconv(.C) ?HWND;
-extern "user32" fn DestroyWindow(hWnd: HWND) callconv(.C) BOOL;
-extern "user32" fn ShowWindow(hWnd: HWND, nCmdShow: i32) callconv(.C) BOOL;
-extern "user32" fn UpdateWindow(hWnd: HWND) callconv(.C) BOOL;
-extern "user32" fn GetClientRect(hWnd: HWND, lpRect: *RECT) callconv(.C) BOOL;
-extern "user32" fn PostMessageW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) callconv(.C) BOOL;
-extern "user32" fn SetWindowLongPtrW(hWnd: HWND, nIndex: i32, dwNewLong: isize) callconv(.C) isize;
-extern "user32" fn GetWindowLongPtrW(hWnd: HWND, nIndex: i32) callconv(.C) isize;
+) callconv(.c) ?HWND;
+extern "user32" fn DestroyWindow(hWnd: HWND) callconv(.c) BOOL;
+extern "user32" fn ShowWindow(hWnd: HWND, nCmdShow: i32) callconv(.c) BOOL;
+extern "user32" fn UpdateWindow(hWnd: HWND) callconv(.c) BOOL;
+extern "user32" fn GetClientRect(hWnd: HWND, lpRect: *RECT) callconv(.c) BOOL;
+extern "user32" fn PostMessageW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) callconv(.c) BOOL;
+extern "user32" fn SetWindowLongPtrW(hWnd: HWND, nIndex: i32, dwNewLong: isize) callconv(.c) isize;
+extern "user32" fn GetWindowLongPtrW(hWnd: HWND, nIndex: i32) callconv(.c) isize;
 
 const HMENU = std.os.windows.HANDLE;
 const GWLP_USERDATA = -21;
@@ -825,7 +825,7 @@ const ID3D11DeviceContextVtbl = extern struct {
     CopyResource: *const anyopaque,
     UpdateSubresource: *const anyopaque,
     CopyStructureCount: *const anyopaque,
-    ClearRenderTargetView: *const fn (*ID3D11DeviceContext, *ID3D11RenderTargetView, *const [4]f32) callconv(.C) void,
+    ClearRenderTargetView: *const fn (*ID3D11DeviceContext, *ID3D11RenderTargetView, *const [4]f32) callconv(.c) void,
 };
 
 const ID3D11DeviceContext = extern struct {
@@ -833,9 +833,9 @@ const ID3D11DeviceContext = extern struct {
 };
 
 const ID3D11RenderTargetViewVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11RenderTargetView, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
-    Release: *const fn (*ID3D11RenderTargetView) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11RenderTargetView, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11RenderTargetView) callconv(.c) u32,
+    Release: *const fn (*ID3D11RenderTargetView) callconv(.c) u32,
 };
 
 const ID3D11RenderTargetView = extern struct {
@@ -843,9 +843,9 @@ const ID3D11RenderTargetView = extern struct {
 };
 
 const ID3D11Texture2DVtbl = extern struct {
-    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*ID3D11Texture2D) callconv(.C) u32,
-    Release: *const fn (*ID3D11Texture2D) callconv(.C) u32,
+    QueryInterface: *const fn (*ID3D11Texture2D, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*ID3D11Texture2D) callconv(.c) u32,
+    Release: *const fn (*ID3D11Texture2D) callconv(.c) u32,
 };
 
 const ID3D11Texture2D = extern struct {
@@ -853,20 +853,20 @@ const ID3D11Texture2D = extern struct {
 };
 
 const IDXGISwapChainVtbl = extern struct {
-    QueryInterface: *const fn (*IDXGISwapChain, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
-    AddRef: *const fn (*IDXGISwapChain) callconv(.C) u32,
-    Release: *const fn (*IDXGISwapChain) callconv(.C) u32,
+    QueryInterface: *const fn (*IDXGISwapChain, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
+    AddRef: *const fn (*IDXGISwapChain) callconv(.c) u32,
+    Release: *const fn (*IDXGISwapChain) callconv(.c) u32,
     SetPrivateData: *const anyopaque,
     SetPrivateDataInterface: *const anyopaque,
     GetPrivateData: *const anyopaque,
     GetParent: *const anyopaque,
     GetDevice: *const anyopaque,
-    Present: *const fn (*IDXGISwapChain, UINT, UINT) callconv(.C) HRESULT,
-    GetBuffer: *const fn (*IDXGISwapChain, UINT, *const GUID, *?*anyopaque) callconv(.C) HRESULT,
+    Present: *const fn (*IDXGISwapChain, UINT, UINT) callconv(.c) HRESULT,
+    GetBuffer: *const fn (*IDXGISwapChain, UINT, *const GUID, *?*anyopaque) callconv(.c) HRESULT,
     SetFullscreenState: *const anyopaque,
     GetFullscreenState: *const anyopaque,
     GetDesc: *const anyopaque,
-    ResizeBuffers: *const fn (*IDXGISwapChain, UINT, UINT, UINT, UINT, UINT) callconv(.C) HRESULT,
+    ResizeBuffers: *const fn (*IDXGISwapChain, UINT, UINT, UINT, UINT, UINT) callconv(.c) HRESULT,
 };
 
 const IDXGISwapChain = extern struct {
