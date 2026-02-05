@@ -196,9 +196,10 @@ pub const bgImageBufferOptions = bufferOptions;
 
 /// Returns the options to use when constructing textures.
 pub inline fn textureOptions(self: Direct3D11) Texture.Options {
-    _ = self;
     return .{
-        .format = .rgba,
+        .device = self.device,
+        .context = self.context,
+        .format = DXGI_FORMAT_R8G8B8A8_UNORM,
         .usage = .default,
         .bind_flags = .{ .shader_resource = true },
         .filter = .linear,
@@ -241,8 +242,9 @@ pub inline fn imageTextureOptions(
     format: ImageTextureFormat,
     srgb: bool,
 ) Texture.Options {
-    _ = self;
     return .{
+        .device = self.device,
+        .context = self.context,
         .format = format.toDXGIFormat(srgb),
         .usage = .default,
         .bind_flags = .{ .shader_resource = true },
@@ -265,6 +267,7 @@ pub fn initAtlasTexture(
     return try Texture.init(
         .{
             .device = self.device,
+            .context = self.context,
             .format = format,
             .usage = .default,
             .bind_flags = .{ .shader_resource = true },
