@@ -10,6 +10,8 @@ const std = @import("std");
 sampler: ?*ID3D11SamplerState,
 
 pub const Options = struct {
+    /// D3D11 device for sampler creation
+    device: ?*ID3D11Device = null,
     filter: Filter = .linear,
     address_u: AddressMode = .clamp,
     address_v: AddressMode = .clamp,
@@ -81,7 +83,9 @@ pub const Error = error{
     SamplerCreationFailed,
 };
 
-pub fn init(device: *ID3D11Device, opts: Options) Error!Sampler {
+pub fn init(opts: Options) Error!Sampler {
+    const device = opts.device orelse return Error.SamplerCreationFailed;
+
     const desc = D3D11_SAMPLER_DESC{
         .Filter = opts.filter.toD3D11(),
         .AddressU = opts.address_u.toD3D11(),

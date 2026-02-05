@@ -270,8 +270,8 @@ pub inline fn textureOptions(self: Direct3D11) Texture.Options {
 
 /// Returns the options to use when constructing samplers.
 pub inline fn samplerOptions(self: Direct3D11) Sampler.Options {
-    _ = self;
     return .{
+        .device = self.device,
         .filter = .linear,
         .address_u = .clamp,
         .address_v = .clamp,
