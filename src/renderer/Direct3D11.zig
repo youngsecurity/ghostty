@@ -180,19 +180,80 @@ pub fn presentLastTarget(self: *Direct3D11) !void {
 
 /// Returns the options to use when constructing buffers.
 pub inline fn bufferOptions(self: Direct3D11) bufferpkg.Options {
-    _ = self;
     return .{
+        .device = self.device,
+        .context = self.context,
         .usage = .dynamic,
         .cpu_access = .write,
+        .bind_flags = .{ .vertex_buffer = true },
     };
 }
 
-pub const instanceBufferOptions = bufferOptions;
-pub const uniformBufferOptions = bufferOptions;
-pub const fgBufferOptions = bufferOptions;
-pub const bgBufferOptions = bufferOptions;
-pub const imageBufferOptions = bufferOptions;
-pub const bgImageBufferOptions = bufferOptions;
+/// Returns the options to use when constructing instance buffers.
+pub inline fn instanceBufferOptions(self: Direct3D11) bufferpkg.Options {
+    return .{
+        .device = self.device,
+        .context = self.context,
+        .usage = .dynamic,
+        .cpu_access = .write,
+        .bind_flags = .{ .vertex_buffer = true },
+    };
+}
+
+/// Returns the options to use when constructing uniform/constant buffers.
+pub inline fn uniformBufferOptions(self: Direct3D11) bufferpkg.Options {
+    return .{
+        .device = self.device,
+        .context = self.context,
+        .usage = .dynamic,
+        .cpu_access = .write,
+        .bind_flags = .{ .constant_buffer = true },
+    };
+}
+
+/// Returns the options to use when constructing foreground cell buffers.
+pub inline fn fgBufferOptions(self: Direct3D11) bufferpkg.Options {
+    return .{
+        .device = self.device,
+        .context = self.context,
+        .usage = .dynamic,
+        .cpu_access = .write,
+        .bind_flags = .{ .vertex_buffer = true },
+    };
+}
+
+/// Returns the options to use when constructing background cell buffers.
+pub inline fn bgBufferOptions(self: Direct3D11) bufferpkg.Options {
+    return .{
+        .device = self.device,
+        .context = self.context,
+        .usage = .dynamic,
+        .cpu_access = .write,
+        .bind_flags = .{ .vertex_buffer = true },
+    };
+}
+
+/// Returns the options to use when constructing image buffers.
+pub inline fn imageBufferOptions(self: Direct3D11) bufferpkg.Options {
+    return .{
+        .device = self.device,
+        .context = self.context,
+        .usage = .dynamic,
+        .cpu_access = .write,
+        .bind_flags = .{ .vertex_buffer = true },
+    };
+}
+
+/// Returns the options to use when constructing background image buffers.
+pub inline fn bgImageBufferOptions(self: Direct3D11) bufferpkg.Options {
+    return .{
+        .device = self.device,
+        .context = self.context,
+        .usage = .dynamic,
+        .cpu_access = .write,
+        .bind_flags = .{ .vertex_buffer = true },
+    };
+}
 
 /// Returns the options to use when constructing textures.
 pub inline fn textureOptions(self: Direct3D11) Texture.Options {
