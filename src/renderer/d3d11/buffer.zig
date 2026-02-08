@@ -296,7 +296,8 @@ pub fn Buffer(comptime T: type) type {
         }
 
         /// Bind as vertex buffer
-        pub fn bindAsVertexBuffer(self: *const Self, context: *ID3D11DeviceContext, slot: u32, offset: u32) void {
+        pub fn bindAsVertexBuffer(self: *const Self, context_ptr: *anyopaque, slot: u32, offset: u32) void {
+            const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
             if (self.buffer) |buf| {
                 const buffers = [_]?*ID3D11Buffer{buf};
                 const stride: u32 = @sizeOf(T);
@@ -307,14 +308,16 @@ pub fn Buffer(comptime T: type) type {
         }
 
         /// Bind as index buffer
-        pub fn bindAsIndexBuffer(self: *const Self, context: *ID3D11DeviceContext, format: u32, offset: u32) void {
+        pub fn bindAsIndexBuffer(self: *const Self, context_ptr: *anyopaque, format: u32, offset: u32) void {
+            const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
             if (self.buffer) |buf| {
                 context.vtable.IASetIndexBuffer(context, buf, format, offset);
             }
         }
 
         /// Bind as constant buffer to vertex shader
-        pub fn bindAsVSConstantBuffer(self: *const Self, context: *ID3D11DeviceContext, slot: u32) void {
+        pub fn bindAsVSConstantBuffer(self: *const Self, context_ptr: *anyopaque, slot: u32) void {
+            const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
             if (self.buffer) |buf| {
                 const buffers = [_]?*ID3D11Buffer{buf};
                 context.vtable.VSSetConstantBuffers(context, slot, 1, &buffers);
@@ -322,7 +325,8 @@ pub fn Buffer(comptime T: type) type {
         }
 
         /// Bind as constant buffer to pixel shader
-        pub fn bindAsPSConstantBuffer(self: *const Self, context: *ID3D11DeviceContext, slot: u32) void {
+        pub fn bindAsPSConstantBuffer(self: *const Self, context_ptr: *anyopaque, slot: u32) void {
+            const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
             if (self.buffer) |buf| {
                 const buffers = [_]?*ID3D11Buffer{buf};
                 context.vtable.PSSetConstantBuffers(context, slot, 1, &buffers);
