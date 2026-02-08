@@ -84,7 +84,7 @@ pub fn init(opts: Options) !Pipeline {
             .AlphaToCoverageEnable = 0,
             .IndependentBlendEnable = 0,
             .RenderTarget = .{
-                .{
+                D3D11_RENDER_TARGET_BLEND_DESC{
                     .BlendEnable = 1,
                     .SrcBlend = D3D11_BLEND_SRC_ALPHA,
                     .DestBlend = D3D11_BLEND_INV_SRC_ALPHA,
