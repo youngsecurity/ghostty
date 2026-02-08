@@ -231,7 +231,8 @@ pub fn update(self: Texture, data: []const u8) void {
 }
 
 /// Bind to pixel shader at the specified slot
-pub fn bindToPixelShader(self: *const Texture, context: *ID3D11DeviceContext, slot: u32) void {
+pub fn bindToPixelShader(self: *const Texture, context_ptr: *anyopaque, slot: u32) void {
+    const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
     if (self.srv) |srv| {
         const srvs = [_]?*ID3D11ShaderResourceView{srv};
         context.vtable.PSSetShaderResources(context, slot, 1, &srvs);
@@ -239,7 +240,8 @@ pub fn bindToPixelShader(self: *const Texture, context: *ID3D11DeviceContext, sl
 }
 
 /// Bind to vertex shader at the specified slot
-pub fn bindToVertexShader(self: *const Texture, context: *ID3D11DeviceContext, slot: u32) void {
+pub fn bindToVertexShader(self: *const Texture, context_ptr: *anyopaque, slot: u32) void {
+    const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
     if (self.srv) |srv| {
         const srvs = [_]?*ID3D11ShaderResourceView{srv};
         context.vtable.VSSetShaderResources(context, slot, 1, &srvs);

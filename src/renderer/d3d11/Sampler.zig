@@ -118,7 +118,8 @@ pub fn deinit(self: *Sampler) void {
 }
 
 /// Bind to pixel shader
-pub fn bindToPixelShader(self: *const Sampler, context: *ID3D11DeviceContext, slot: u32) void {
+pub fn bindToPixelShader(self: *const Sampler, context_ptr: *anyopaque, slot: u32) void {
+    const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
     if (self.sampler) |s| {
         const samplers = [_]?*ID3D11SamplerState{s};
         context.vtable.PSSetSamplers(context, slot, 1, &samplers);
@@ -126,7 +127,8 @@ pub fn bindToPixelShader(self: *const Sampler, context: *ID3D11DeviceContext, sl
 }
 
 /// Bind to vertex shader
-pub fn bindToVertexShader(self: *const Sampler, context: *ID3D11DeviceContext, slot: u32) void {
+pub fn bindToVertexShader(self: *const Sampler, context_ptr: *anyopaque, slot: u32) void {
+    const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
     if (self.sampler) |s| {
         const samplers = [_]?*ID3D11SamplerState{s};
         context.vtable.VSSetSamplers(context, slot, 1, &samplers);

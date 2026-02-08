@@ -158,7 +158,8 @@ pub fn deinit(self: *Pipeline) void {
 }
 
 /// Bind this pipeline to the device context
-pub fn bind(self: *const Pipeline, context: *ID3D11DeviceContext) void {
+pub fn bind(self: *const Pipeline, context_ptr: *anyopaque) void {
+    const context: *ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
     // Set vertex shader
     if (self.vertex_shader) |vs| {
         context.vtable.VSSetShader(context, vs, null, 0);

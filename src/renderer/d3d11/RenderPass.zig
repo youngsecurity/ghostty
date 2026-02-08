@@ -132,7 +132,7 @@ pub fn step(self: *const RenderPass, s: Step) void {
     context.vtable.RSSetViewports(context, 1, &[_]D3D11_VIEWPORT{viewport});
 
     // Bind pipeline (shaders, states)
-    s.pipeline.bind(context);
+    s.pipeline.bind(@ptrCast(context));
 
     // Set primitive topology
     context.vtable.IASetPrimitiveTopology(context, s.draw.type.toD3D11());
@@ -147,14 +147,14 @@ pub fn step(self: *const RenderPass, s: Step) void {
     // Bind textures
     for (s.textures, 0..) |maybe_tex, i| {
         if (maybe_tex) |tex| {
-            tex.bindToPixelShader(context, @intCast(i));
+            tex.bindToPixelShader(@ptrCast(context), @intCast(i));
         }
     }
 
     // Bind samplers
     for (s.samplers, 0..) |maybe_sampler, i| {
         if (maybe_sampler) |sampler| {
-            sampler.bindToPixelShader(context, @intCast(i));
+            sampler.bindToPixelShader(@ptrCast(context), @intCast(i));
         }
     }
 
@@ -189,76 +189,10 @@ const D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST = 4;
 const D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP = 5;
 
 // =============================================================================
-// D3D11 Type Definitions
+// D3D11 Type Definitions - use Target's public definitions (DRY)
 // =============================================================================
 
-const UINT = u32;
-const FLOAT = f32;
-
-const D3D11_VIEWPORT = extern struct {
-    TopLeftX: FLOAT,
-    TopLeftY: FLOAT,
-    Width: FLOAT,
-    Height: FLOAT,
-    MinDepth: FLOAT,
-    MaxDepth: FLOAT,
-};
-
-pub const ID3D11DeviceContextVtbl = extern struct {
-    // IUnknown (0-2)
-    QueryInterface: *const anyopaque,
-    AddRef: *const anyopaque,
-    Release: *const anyopaque,
-    // ID3D11DeviceChild (3-6)
-    GetDevice: *const anyopaque,
-    GetPrivateData: *const anyopaque,
-    SetPrivateData: *const anyopaque,
-    SetPrivateDataInterface: *const anyopaque,
-    // ID3D11DeviceContext (7+)
-    VSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*anyopaque) callconv(.c) void, // 7
-    PSSetShaderResources: *const anyopaque, // 8
-    PSSetShader: *const anyopaque, // 9
-    PSSetSamplers: *const anyopaque, // 10
-    VSSetShader: *const anyopaque, // 11
-    DrawIndexed: *const anyopaque, // 12
-    Draw: *const fn (*ID3D11DeviceContext, UINT, UINT) callconv(.c) void, // 13
-    Map: *const anyopaque, // 14
-    Unmap: *const anyopaque, // 15
-    PSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*anyopaque) callconv(.c) void, // 16
-    IASetInputLayout: *const anyopaque, // 17
-    IASetVertexBuffers: *const anyopaque, // 18
-    IASetIndexBuffer: *const anyopaque, // 19
-    DrawIndexedInstanced: *const anyopaque, // 20
-    DrawInstanced: *const fn (*ID3D11DeviceContext, UINT, UINT, UINT, UINT) callconv(.c) void, // 21
-    GSSetConstantBuffers: *const anyopaque, // 22
-    GSSetShader: *const anyopaque, // 23
-    IASetPrimitiveTopology: *const fn (*ID3D11DeviceContext, UINT) callconv(.c) void, // 24
-    VSSetShaderResources: *const anyopaque, // 25
-    VSSetSamplers: *const anyopaque, // 26
-    Begin: *const anyopaque, // 27
-    End: *const anyopaque, // 28
-    GetData: *const anyopaque, // 29
-    SetPredication: *const anyopaque, // 30
-    GSSetShaderResources: *const anyopaque, // 31
-    GSSetSamplers: *const anyopaque, // 32
-    OMSetRenderTargets: *const anyopaque, // 33
-    OMSetRenderTargetsAndUnorderedAccessViews: *const anyopaque, // 34
-    OMSetBlendState: *const anyopaque, // 35
-    OMSetDepthStencilState: *const anyopaque, // 36
-    SOSetTargets: *const anyopaque, // 37
-    DrawAuto: *const anyopaque, // 38
-    DrawIndexedInstancedIndirect: *const anyopaque, // 39
-    DrawInstancedIndirect: *const anyopaque, // 40
-    Dispatch: *const anyopaque, // 41
-    DispatchIndirect: *const anyopaque, // 42
-    RSSetState: *const anyopaque, // 43
-    RSSetViewports: *const fn (*ID3D11DeviceContext, UINT, [*]const D3D11_VIEWPORT) callconv(.c) void, // 44
-    // ... more methods
-};
-
-pub const ID3D11DeviceContext = extern struct {
-    vtable: *const ID3D11DeviceContextVtbl,
-};
+const D3D11_VIEWPORT = Target.D3D11_VIEWPORT;
 
 test {
     _ = RenderPass;

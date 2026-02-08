@@ -213,58 +213,72 @@ pub const ID3D11Device = extern struct {
     vtable: *const ID3D11DeviceVtbl,
 };
 
-const ID3D11DeviceContextVtbl = extern struct {
+/// ID3D11DeviceContext vtable - public so other D3D11 modules can use it (DRY)
+pub const ID3D11DeviceContextVtbl = extern struct {
+    // IUnknown (0-2)
     QueryInterface: *const anyopaque,
     AddRef: *const anyopaque,
     Release: *const anyopaque,
+    // ID3D11DeviceChild (3-6)
     GetDevice: *const anyopaque,
     GetPrivateData: *const anyopaque,
     SetPrivateData: *const anyopaque,
     SetPrivateDataInterface: *const anyopaque,
-    VSSetConstantBuffers: *const anyopaque,
-    PSSetShaderResources: *const anyopaque,
-    PSSetShader: *const anyopaque,
-    PSSetSamplers: *const anyopaque,
-    VSSetShader: *const anyopaque,
-    DrawIndexed: *const anyopaque,
-    Draw: *const anyopaque,
-    Map: *const anyopaque,
-    Unmap: *const anyopaque,
-    PSSetConstantBuffers: *const anyopaque,
-    IASetInputLayout: *const anyopaque,
-    IASetVertexBuffers: *const anyopaque,
-    IASetIndexBuffer: *const anyopaque,
-    DrawIndexedInstanced: *const anyopaque,
-    DrawInstanced: *const anyopaque,
-    GSSetConstantBuffers: *const anyopaque,
-    GSSetShader: *const anyopaque,
-    IASetPrimitiveTopology: *const anyopaque,
-    VSSetShaderResources: *const anyopaque,
-    VSSetSamplers: *const anyopaque,
-    Begin: *const anyopaque,
-    End: *const anyopaque,
-    GetData: *const anyopaque,
-    SetPredication: *const anyopaque,
-    GSSetShaderResources: *const anyopaque,
-    GSSetSamplers: *const anyopaque,
-    OMSetRenderTargets: *const fn (*ID3D11DeviceContext, UINT, [*]const ?*ID3D11RenderTargetView, ?*anyopaque) callconv(.c) void,
-    OMSetRenderTargetsAndUnorderedAccessViews: *const anyopaque,
-    OMSetBlendState: *const anyopaque,
-    OMSetDepthStencilState: *const anyopaque,
-    SOSetTargets: *const anyopaque,
-    DrawAuto: *const anyopaque,
-    DrawIndexedInstancedIndirect: *const anyopaque,
-    DrawInstancedIndirect: *const anyopaque,
-    Dispatch: *const anyopaque,
-    DispatchIndirect: *const anyopaque,
-    RSSetState: *const anyopaque,
-    RSSetViewports: *const anyopaque,
-    RSSetScissorRects: *const anyopaque,
-    CopySubresourceRegion: *const anyopaque,
-    CopyResource: *const anyopaque,
-    UpdateSubresource: *const anyopaque,
-    CopyStructureCount: *const anyopaque,
-    ClearRenderTargetView: *const fn (*ID3D11DeviceContext, *ID3D11RenderTargetView, *const [4]f32) callconv(.c) void,
+    // ID3D11DeviceContext (7+)
+    VSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*anyopaque) callconv(.c) void, // 7
+    PSSetShaderResources: *const anyopaque, // 8
+    PSSetShader: *const anyopaque, // 9
+    PSSetSamplers: *const anyopaque, // 10
+    VSSetShader: *const anyopaque, // 11
+    DrawIndexed: *const anyopaque, // 12
+    Draw: *const fn (*ID3D11DeviceContext, UINT, UINT) callconv(.c) void, // 13
+    Map: *const anyopaque, // 14
+    Unmap: *const anyopaque, // 15
+    PSSetConstantBuffers: *const fn (*ID3D11DeviceContext, UINT, UINT, [*]const ?*anyopaque) callconv(.c) void, // 16
+    IASetInputLayout: *const anyopaque, // 17
+    IASetVertexBuffers: *const anyopaque, // 18
+    IASetIndexBuffer: *const anyopaque, // 19
+    DrawIndexedInstanced: *const anyopaque, // 20
+    DrawInstanced: *const fn (*ID3D11DeviceContext, UINT, UINT, UINT, UINT) callconv(.c) void, // 21
+    GSSetConstantBuffers: *const anyopaque, // 22
+    GSSetShader: *const anyopaque, // 23
+    IASetPrimitiveTopology: *const fn (*ID3D11DeviceContext, UINT) callconv(.c) void, // 24
+    VSSetShaderResources: *const anyopaque, // 25
+    VSSetSamplers: *const anyopaque, // 26
+    Begin: *const anyopaque, // 27
+    End: *const anyopaque, // 28
+    GetData: *const anyopaque, // 29
+    SetPredication: *const anyopaque, // 30
+    GSSetShaderResources: *const anyopaque, // 31
+    GSSetSamplers: *const anyopaque, // 32
+    OMSetRenderTargets: *const fn (*ID3D11DeviceContext, UINT, [*]const ?*ID3D11RenderTargetView, ?*anyopaque) callconv(.c) void, // 33
+    OMSetRenderTargetsAndUnorderedAccessViews: *const anyopaque, // 34
+    OMSetBlendState: *const anyopaque, // 35
+    OMSetDepthStencilState: *const anyopaque, // 36
+    SOSetTargets: *const anyopaque, // 37
+    DrawAuto: *const anyopaque, // 38
+    DrawIndexedInstancedIndirect: *const anyopaque, // 39
+    DrawInstancedIndirect: *const anyopaque, // 40
+    Dispatch: *const anyopaque, // 41
+    DispatchIndirect: *const anyopaque, // 42
+    RSSetState: *const anyopaque, // 43
+    RSSetViewports: *const fn (*ID3D11DeviceContext, UINT, [*]const D3D11_VIEWPORT) callconv(.c) void, // 44
+    RSSetScissorRects: *const anyopaque, // 45
+    CopySubresourceRegion: *const anyopaque, // 46
+    CopyResource: *const fn (*ID3D11DeviceContext, *anyopaque, *anyopaque) callconv(.c) void, // 47
+    UpdateSubresource: *const anyopaque, // 48
+    CopyStructureCount: *const anyopaque, // 49
+    ClearRenderTargetView: *const fn (*ID3D11DeviceContext, *ID3D11RenderTargetView, *const [4]f32) callconv(.c) void, // 50
+};
+
+/// D3D11 viewport structure - public for RenderPass
+pub const D3D11_VIEWPORT = extern struct {
+    TopLeftX: f32,
+    TopLeftY: f32,
+    Width: f32,
+    Height: f32,
+    MinDepth: f32,
+    MaxDepth: f32,
 };
 
 pub const ID3D11DeviceContext = extern struct {
