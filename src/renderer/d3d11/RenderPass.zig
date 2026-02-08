@@ -114,7 +114,8 @@ pub fn begin(opts: Options) RenderPass {
 pub fn step(self: *const RenderPass, s: Step) void {
     if (s.draw.instance_count == 0) return;
 
-    const context = self.renderer.api.context orelse return;
+    const context_ptr = self.renderer.api.context orelse return;
+    const context: *Target.ID3D11DeviceContext = @ptrCast(@alignCast(context_ptr));
 
     // Bind render target
     self.target.bind(context);

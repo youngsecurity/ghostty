@@ -267,7 +267,7 @@ const ID3D11DeviceContextVtbl = extern struct {
     ClearRenderTargetView: *const fn (*ID3D11DeviceContext, *ID3D11RenderTargetView, *const [4]f32) callconv(.c) void,
 };
 
-const ID3D11DeviceContext = extern struct {
+pub const ID3D11DeviceContext = extern struct {
     vtable: *const ID3D11DeviceContextVtbl,
 };
 

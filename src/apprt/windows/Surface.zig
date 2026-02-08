@@ -343,12 +343,11 @@ pub fn handleMouseMove(self: *Surface, x: f64, y: f64, mods: input.Mods) void {
 
 /// Handle mouse scroll from Win32
 pub fn handleScroll(self: *Surface, x: f64, y: f64, mods: input.Mods) void {
-    // Convert Mods to ScrollMods
+    _ = mods; // Windows scroll events don't use keyboard mods in ScrollMods
+    // ScrollMods tracks precision/momentum, not keyboard modifiers
     const scroll_mods: input.ScrollMods = .{
-        .shift = mods.shift,
-        .ctrl = mods.ctrl,
-        .alt = mods.alt,
-        .precision = false,
+        .precision = false, // Standard Windows mouse wheel is not high-precision
+        .momentum = .none,
     };
     self.core_surface.scrollCallback(x, y, scroll_mods);
 }
